@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Runic Forge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #1a1a1a;
+            color: #e5e5e5;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .fantasy-font {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake-anim { animation: shake 0.3s; animation-iteration-count: 1; }
+
+        @keyframes attackLeft {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(50px) rotate(10deg); }
+            100% { transform: translateX(0); }
+        }
+        .attack-left { animation: attackLeft 0.3s ease-in-out; }
+
+        @keyframes attackRight {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(-50px) rotate(-10deg); }
+            100% { transform: translateX(0); }
+        }
+        .attack-right { animation: attackRight 0.3s ease-in-out; }
+
+        @keyframes hitShake {
+            0%, 100% { transform: translateX(0); filter: brightness(1); }
+            25% { transform: translateX(-5px); filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(5); } /* Flash Red */
+            75% { transform: translateX(5px); }
+        }
+        .hit-anim { animation: hitShake 0.4s; }
+
+        @keyframes damageFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+        }
+        .damage-number {
+            position: absolute;
+            font-weight: 900;
+            font-size: 2rem;
+            text-shadow: 2px 2px 0px #000;
+            pointer-events: none;
+            animation: damageFloat 1s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes floatText {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-50px); }
+        }
+
+        .floating-text {
+            position: absolute;
+            animation: floatText 1s ease-out forwards;
+            pointer-events: none;
+            font-weight: bold;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.8);
+            z-index: 50;
+        }
+
+        /* Rarities */
+        .rarity-common { color: #a3a3a3; }
+        .rarity-uncommon { color: #22c55e; }
+        .rarity-rare { color: #3b82f6; }
+        .rarity-epic { color: #a855f7; }
+        .rarity-legendary { color: #eab308; }
+
+        /* Rarity Backgrounds */
+        .bg-rarity-common { background: linear-gradient(135deg, #292524 0%, #44403c 100%); border-color: #57534e; }
+        .bg-rarity-uncommon { background: linear-gradient(135deg, #064e3b 0%, #14532d 100%); border-color: #166534; }
+        .bg-rarity-rare { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); border-color: #2563eb; }
+        .bg-rarity-epic { background: linear-gradient(135deg, #581c87 0%, #7e22ce 100%); border-color: #9333ea; }
+        .bg-rarity-legendary { background: linear-gradient(135deg, #713f12 0%, #a16207 100%); border-color: #ca8a04; }
+
+        .btn-tab {
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .btn-tab.active {
+            border-bottom: 3px solid #f59e0b;
+            color: #f59e0b;
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #262626; }
+        ::-webkit-scrollbar-thumb { background: #525252; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #737373; }
+
+        #skill-check-canvas {
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+        }
+
+        .slot {
+            background: #171717;
+            border: 2px dashed #404040;
+            transition: all 0.2s;
+        }
+        .slot.filled {
+            background: #262626;
+            border: 2px solid #f59e0b;
+        }
+
+        .gold-shine {
+            text-shadow: 0 0 10px #facc15;
+            animation: pulse-gold 2s infinite;
+        }
+        @keyframes pulse-gold {
+            0% { text-shadow: 0 0 5px #ca8a04; }
+            50% { text-shadow: 0 0 15px #facc15; }
+            100% { text-shadow: 0 0 5px #ca8a04; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-neutral-900 border-b border-neutral-800 p-4 shadow-lg z-10">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-hammer text-amber-500 text-2xl"></i>
+                <div class="flex flex-col">
+                    <h1 class="text-xl md:text-2xl font-bold text-amber-500 tracking-wider leading-none">The Runic Forge</h1>
+                    <div class="text-xs text-neutral-500 flex items-center gap-1">
+                        <i class="fas fa-coins text-yellow-500"></i>
+                        <span id="gold-display" class="font-mono text-yellow-500">0</span> g
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 text-xs md:text-base overflow-x-auto">
+                <button onclick="switchTab('mining')" id="tab-mining" class="btn-tab active px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
+                    <i class="fas fa-mountain mr-2"></i> Mine
+                </button>
+                <button onclick="switchTab('forging')" id="tab-forging" class="btn-tab px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
+                    <i class="fas fa-fire mr-2"></i> Forge
+                </button>
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="btn-tab px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
+                    <i class="fas fa-box-open mr-2"></i> Bag
+                </button>
+                <button onclick="switchTab('shop')" id="tab-shop" class="btn-tab px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
+                    <i class="fas fa-store mr-2"></i> Shop
+                </button>
+                <button onclick="switchTab('fight')" id="tab-fight" class="btn-tab px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
+                    <i class="fas fa-skull-crossbones mr-2"></i> Fight
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-hidden flex relative">
+        
+        <!-- Tab Content Container -->
+        <div class="flex-1 relative bg-neutral-800 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+            
+            <!-- Mining Tab -->
+            <div id="content-mining" class="w-full h-full flex flex-col items-center justify-center relative p-6">
+                <div class="text-center mb-8">
+                    <h2 class="text-4xl font-bold fantasy-font text-stone-300 mb-2">The Deep Mines</h2>
+                    <p class="text-stone-400">Strike the boulder to reveal its riches.</p>
+                </div>
+
+                <div class="relative group cursor-pointer select-none" onclick="hitRock(event)">
+                    <!-- Rock Graphic -->
+                    <div id="rock-element" class="w-64 h-64 transition-transform transform group-hover:scale-105">
+                         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                            <filter id="noise">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+                            </filter>
+                            <path d="M45,150 L25,100 L40,50 L90,25 L150,35 L180,90 L160,160 L100,180 Z" fill="#57534e" stroke="#292524" stroke-width="5" />
+                            <path d="M45,150 L25,100 L40,50 L90,25 L150,35 L180,90 L160,160 L100,180 Z" fill="#000" fill-opacity="0.2" style="filter:url(#noise);" />
+                            <!-- Cracks -->
+                            <path id="rock-crack-1" class="hidden" d="M60,60 L90,90 L80,120" fill="none" stroke="#292524" stroke-width="3" />
+                            <path id="rock-crack-2" class="hidden" d="M140,50 L120,100 L150,140" fill="none" stroke="#292524" stroke-width="3" />
+                        </svg>
+                    </div>
+                    
+                    <!-- HP Bar -->
+                    <div class="absolute -bottom-8 left-0 w-full h-4 bg-neutral-900 rounded-full border border-neutral-700 overflow-hidden">
+                        <div id="rock-hp-bar" class="h-full bg-stone-500 w-full transition-all duration-200"></div>
+                    </div>
+                </div>
+
+                <div class="mt-12 text-center text-neutral-500 text-sm">
+                    <p>Click or Tap to Mine • 3 Hits to Break</p>
+                </div>
+            </div>
+
+            <!-- Forging Tab -->
+            <div id="content-forging" class="w-full h-full hidden flex flex-col items-center p-6 overflow-y-auto">
+                <div class="text-center mb-6">
+                    <h2 class="text-4xl font-bold fantasy-font text-amber-500 mb-2">The Anvil</h2>
+                    <p class="text-amber-200/60">Mix ores to create new alloys.</p>
+                </div>
+
+                <!-- Forge Setup State -->
+                <div id="forge-setup" class="w-full max-w-4xl bg-neutral-900/95 border border-neutral-700 rounded-lg p-6 shadow-2xl backdrop-blur-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Left: Inventory Selector -->
+                    <div>
+                        <h3 class="text-lg font-bold mb-4 text-neutral-300 border-b border-neutral-700 pb-2">Your Materials</h3>
+                        <div id="forge-materials-list" class="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto p-1">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Crucible & Predictions -->
+                    <div class="flex flex-col">
+                        <h3 class="text-lg font-bold mb-4 text-amber-500 border-b border-neutral-700 pb-2">The Crucible</h3>
+                        
+                        <!-- Selected Ores -->
+                        <div id="crucible-list" class="flex flex-wrap gap-2 mb-4 min-h-[60px] bg-black/30 p-2 rounded border border-neutral-800">
+                            <span class="text-neutral-600 text-sm italic w-full text-center py-4">Crucible is empty. Add materials...</span>
+                        </div>
+
+                        <!-- Prediction Stats -->
+                        <div id="forge-prediction" class="bg-neutral-800 p-4 rounded border border-neutral-700 mb-4 flex-1">
+                            <h4 class="text-xs font-bold uppercase text-neutral-500 mb-2">Potential Outcome</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-neutral-400">Total Mass:</span>
+                                    <span id="pred-mass" class="text-white font-mono">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-neutral-400">Est. Power Mult:</span>
+                                    <span id="pred-power" class="text-amber-400 font-mono">0.0x</span>
+                                </div>
+                                <div class="border-t border-neutral-700 pt-2 mt-2">
+                                    <span class="text-neutral-400 block mb-1">Likely Items:</span>
+                                    <ul id="pred-chances" class="list-disc list-inside text-neutral-300 text-xs">
+                                        <li>Add ores to see...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btn-start-forge" disabled onclick="startForging()" class="w-full py-4 bg-neutral-800 text-neutral-500 font-bold uppercase tracking-widest rounded border border-neutral-700 cursor-not-allowed transition-all hover:bg-amber-900/50 hover:text-amber-500 hover:border-amber-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                            Ignite The Forge
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Forge Minigame State (Hidden initially) -->
+                <div id="forge-minigame" class="hidden flex-col items-center justify-center w-full h-full absolute top-0 left-0 bg-neutral-900/95 z-50">
+                    <div class="mb-4 text-center">
+                        <h2 class="text-3xl text-amber-500 fantasy-font">Forging in Progress</h2>
+                        <p class="text-sm text-neutral-400">The needle spins endlessly... Time your strike!</p>
+                        <p class="text-xs text-neutral-500 mt-1">Press <span class="bg-neutral-700 px-2 py-0.5 rounded text-white font-bold">SPACE</span> or <span class="bg-neutral-700 px-2 py-0.5 rounded text-white font-bold">TAP</span> in the red zone.</p>
+                        <div class="flex justify-center gap-4 mt-2 font-mono text-lg">
+                            <span id="skill-check-count">Stage: 1/10</span>
+                            <span id="skill-check-hits" class="text-green-500">Score: 0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="relative">
+                        <canvas id="skill-check-canvas" width="300" height="300" class="bg-neutral-800 cursor-pointer"></canvas>
+                        <div id="feedback-text" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-4xl font-bold opacity-0 pointer-events-none" style="text-shadow: 0 0 10px black;"></div>
+                    </div>
+                    
+                    <button onclick="handleInput()" class="mt-8 md:hidden px-8 py-4 bg-amber-600 text-white font-bold rounded-full shadow-lg active:scale-95 transition-transform">
+                        STRIKE!
+                    </button>
+                </div>
+
+                <!-- Forge Result Modal -->
+                <div id="forge-result" class="hidden flex-col items-center justify-center w-full h-full absolute top-0 left-0 bg-black/90 z-50 p-4">
+                    <div class="bg-neutral-900 border border-amber-500/50 p-8 rounded-lg max-w-md w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.2)]">
+                        <h2 class="text-3xl font-bold fantasy-font text-white mb-2">Forging Complete!</h2>
+                        <div class="my-6 relative">
+                            <div class="absolute inset-0 bg-amber-500/10 blur-xl rounded-full"></div>
+                            <i id="result-icon" class="fas fa-khanda text-6xl text-amber-500 mb-4 block relative z-10"></i>
+                            <h3 id="result-weapon-name" class="text-2xl font-bold text-amber-400 relative z-10">Sword of Might</h3>
+                            <p id="result-weapon-quality" class="text-sm font-bold uppercase tracking-widest mt-1 text-purple-400 relative z-10">Epic Quality</p>
+                        </div>
+                        <div class="bg-neutral-800 p-4 rounded mb-6 text-left space-y-2 font-mono text-sm border border-neutral-700">
+                            <div class="flex justify-between"><span>Type:</span> <span id="result-type" class="text-gray-300">Weapon</span></div>
+                            <div class="flex justify-between"><span>Power:</span> <span id="result-damage" class="text-red-400">45</span></div>
+                            <div class="flex justify-between"><span>Value:</span> <span id="result-value" class="text-yellow-400">250g</span></div>
+                            <div class="flex justify-between border-t border-neutral-700 pt-2 mt-2"><span>Precision:</span> <span id="result-score">8/10</span></div>
+                        </div>
+                        <button onclick="closeResult()" class="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded w-full transition-colors shadow-lg shadow-amber-900/50">
+                            Claim Item
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+             <!-- Inventory Tab -->
+            <div id="content-inventory" class="w-full h-full hidden flex flex-col p-6 gap-6 overflow-hidden">
+                <div class="flex flex-col md:flex-row gap-6 h-full">
+                    <!-- Equipment Section (Top/Left) -->
+                    <div class="w-full md:w-1/3 bg-neutral-900/90 border border-neutral-700 rounded-lg p-4 backdrop-blur-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-4 border-b border-neutral-700 pb-2">
+                            <h2 class="text-xl font-bold fantasy-font text-amber-500">Equipment</h2>
+                            <button onclick="equipBest()" class="text-xs bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-white transition-colors">
+                                <i class="fas fa-magic mr-1"></i> Best
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <!-- Helmet -->
+                            <div id="slot-helmet" class="slot aspect-square rounded flex flex-col items-center justify-center p-2 text-center relative group cursor-pointer hover:bg-neutral-800" onclick="unequipItem('helmet')">
+                                <i class="fas fa-helmet-safety text-neutral-600 text-3xl mb-1"></i>
+                                <span class="text-xs text-neutral-500">Helmet</span>
+                            </div>
+                            <!-- Weapon -->
+                            <div id="slot-weapon" class="slot aspect-square rounded flex flex-col items-center justify-center p-2 text-center relative group cursor-pointer hover:bg-neutral-800" onclick="unequipItem('weapon')">
+                                <i class="fas fa-khanda text-neutral-600 text-3xl mb-1"></i>
+                                <span class="text-xs text-neutral-500">Weapon</span>
+                            </div>
+                            <!-- Chestplate -->
+                            <div id="slot-chestplate" class="slot aspect-square rounded flex flex-col items-center justify-center p-2 text-center relative group cursor-pointer hover:bg-neutral-800" onclick="unequipItem('chestplate')">
+                                <i class="fas fa-tshirt text-neutral-600 text-3xl mb-1"></i>
+                                <span class="text-xs text-neutral-500">Chest</span>
+                            </div>
+                            <!-- Leggings -->
+                            <div id="slot-leggings" class="slot aspect-square rounded flex flex-col items-center justify-center p-2 text-center relative group cursor-pointer hover:bg-neutral-800" onclick="unequipItem('leggings')">
+                                <i class="fas fa-socks text-neutral-600 text-3xl mb-1"></i>
+                                <span class="text-xs text-neutral-500">Legs</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="space-y-2 text-sm font-mono mt-auto">
+                            <div class="bg-black/40 p-2 rounded flex justify-between">
+                                <span class="text-red-400"><i class="fas fa-fist-raised mr-2"></i>Attack</span>
+                                <span id="stat-atk" class="text-white font-bold">0</span>
+                            </div>
+                            <div class="bg-black/40 p-2 rounded flex justify-between">
+                                <span class="text-blue-400"><i class="fas fa-shield-alt mr-2"></i>Defense</span>
+                                <span id="stat-def" class="text-white font-bold">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Storage Section (Right/Bottom) -->
+                    <div class="w-full md:w-2/3 flex flex-col gap-4">
+                        <!-- Crafted Items (Bag) -->
+                        <div class="flex-1 bg-neutral-900/90 border border-neutral-700 rounded-lg p-4 backdrop-blur-sm flex flex-col min-h-[300px]">
+                            <h2 class="text-xl font-bold fantasy-font text-neutral-300 mb-2 border-b border-neutral-700 pb-2">Bag Items</h2>
+                            <div id="weapon-list" class="flex-1 overflow-y-auto space-y-2 pr-2">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Materials -->
+                        <div class="h-1/3 bg-neutral-900/90 border border-neutral-700 rounded-lg p-4 backdrop-blur-sm flex flex-col">
+                            <h2 class="text-lg font-bold fantasy-font text-neutral-400 mb-2 border-b border-neutral-700 pb-2">Materials</h2>
+                            <div id="inventory-list" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pr-2">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shop Tab -->
+            <div id="content-shop" class="w-full h-full hidden flex flex-col md:flex-row p-6 gap-6 overflow-hidden">
+                
+                <!-- Shop: Inventory Side -->
+                <div class="w-full md:w-1/2 flex flex-col bg-neutral-900/90 border border-neutral-700 rounded-lg p-4 backdrop-blur-sm">
+                    <h2 class="text-xl font-bold fantasy-font text-neutral-300 mb-4 border-b border-neutral-700 pb-2">Your Armory</h2>
+                    <div class="text-xs text-neutral-500 mb-2">Select an item to sell</div>
+                    
+                    <div id="shop-inventory-list" class="flex-1 overflow-y-auto space-y-2 pr-2">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Shop: Market Side -->
+                <div class="w-full md:w-1/2 flex flex-col gap-4">
+                    
+                    <!-- Generic Merchant -->
+                    <div class="bg-neutral-800 p-4 rounded-lg border border-neutral-700 shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-neutral-700 rounded-full flex items-center justify-center text-neutral-400">
+                                    <i class="fas fa-user-friends"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-neutral-300">Local Merchant</h3>
+                                    <p class="text-xs text-neutral-500">Buys anything • Low Prices</p>
+                                </div>
+                            </div>
+                            <button onclick="sellToMerchant()" id="btn-sell-merchant" class="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded text-sm transition-colors" disabled>
+                                Sell (<span id="merchant-price">0</span>g)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Warriors Header -->
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold fantasy-font text-amber-500">Visiting Warriors</h2>
+                        <div class="text-xs font-mono bg-neutral-800 px-3 py-1 rounded border border-neutral-700 text-neutral-400">
+                            <i class="fas fa-hourglass-half mr-1"></i> New in: <span id="warrior-timer" class="text-white">60</span>s
+                        </div>
+                    </div>
+
+                    <!-- Warriors List -->
+                    <div id="warrior-list" class="flex-1 overflow-y-auto space-y-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Fight Tab -->
+            <div id="content-fight" class="w-full h-full hidden flex flex-col items-center p-6 relative">
+                
+                <!-- Player Stats Display -->
+                <div class="flex gap-4 mb-8 bg-neutral-900/90 p-4 rounded-lg border border-neutral-700 shadow-xl backdrop-blur-sm mt-4">
+                    <div class="flex items-center gap-3 px-4 border-r border-neutral-700">
+                        <div class="w-10 h-10 rounded-full bg-green-900/30 flex items-center justify-center border border-green-700/50">
+                            <i class="fas fa-heart text-green-500 text-lg"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Health</span>
+                            <span id="fight-stat-hp" class="text-xl font-bold text-white font-mono leading-none">200</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 px-4 border-r border-neutral-700">
+                        <div class="w-10 h-10 rounded-full bg-red-900/30 flex items-center justify-center border border-red-700/50">
+                            <i class="fas fa-fist-raised text-red-500 text-lg"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Attack</span>
+                            <span id="fight-stat-atk" class="text-xl font-bold text-white font-mono leading-none">10</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 px-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-700/50">
+                            <i class="fas fa-shield-alt text-blue-500 text-lg"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Defense</span>
+                            <span id="fight-stat-def" class="text-xl font-bold text-white font-mono leading-none">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opponents Container -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl mb-8" id="arena-list">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Dungeon Button -->
+                <div class="mt-auto mb-8">
+                    <button onclick="startBattle('dungeon')" class="group relative px-8 py-4 bg-neutral-900 border-2 border-red-900 rounded-lg overflow-hidden hover:scale-105 transition-transform shadow-2xl">
+                        <div class="absolute inset-0 bg-red-900/20 group-hover:bg-red-900/40 transition-colors"></div>
+                        <div class="relative flex items-center gap-4">
+                            <i class="fas fa-dungeon text-4xl text-red-500 group-hover:text-red-400"></i>
+                            <div class="text-left">
+                                <div class="text-red-500 font-bold uppercase tracking-widest text-sm">Enter The</div>
+                                <div class="text-2xl font-bold text-white fantasy-font">Dark Dungeon</div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Battle View Overlay -->
+                <div id="battle-view" class="hidden absolute inset-0 bg-black/95 z-50 flex-col items-center justify-center p-4">
+                    <!-- Battle Header -->
+                    <div class="absolute top-8 text-center w-full">
+                        <h2 class="text-3xl text-red-500 fantasy-font mb-2">Combat</h2>
+                        <div class="text-neutral-500 text-sm" id="battle-log-header">Turn 1</div>
+                    </div>
+
+                    <!-- Fighters -->
+                    <div class="flex justify-between items-center w-full max-w-4xl px-4 md:px-12 relative">
+                        <!-- Player -->
+                        <div class="flex flex-col items-center w-1/3 relative" id="fighter-player">
+                            <div class="w-full h-4 bg-neutral-800 rounded-full mb-2 overflow-hidden border border-neutral-700">
+                                <div id="player-hp-bar" class="h-full bg-green-600 transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                            <span id="player-hp-text" class="text-xs font-mono text-white mb-2">500/500</span>
+                            <div class="w-32 h-32 md:w-48 md:h-48 bg-neutral-800 border-2 border-blue-500 rounded-lg flex items-center justify-center text-6xl text-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                                <i class="fas fa-user-knight"></i>
+                            </div>
+                            <div class="mt-4 font-bold text-xl text-white">You</div>
+                        </div>
+
+                        <!-- VS -->
+                        <div class="text-4xl font-bold text-red-800 fantasy-font italic">VS</div>
+
+                        <!-- Enemy -->
+                        <div class="flex flex-col items-center w-1/3 relative" id="fighter-enemy">
+                            <div class="w-full h-4 bg-neutral-800 rounded-full mb-2 overflow-hidden border border-neutral-700">
+                                <div id="enemy-hp-bar" class="h-full bg-red-600 transition-all duration-300" style="width: 100%"></div>
+                            </div>
+                            <span id="enemy-hp-text" class="text-xs font-mono text-white mb-2">???/???</span>
+                            <div class="w-32 h-32 md:w-48 md:h-48 bg-neutral-800 border-2 border-red-500 rounded-lg flex items-center justify-center text-6xl text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                                <i id="enemy-icon" class="fas fa-dragon"></i>
+                            </div>
+                            <div id="enemy-name" class="mt-4 font-bold text-xl text-white">Enemy</div>
+                        </div>
+                    </div>
+
+                    <!-- Log -->
+                    <div id="battle-log" class="mt-8 h-32 w-full max-w-2xl bg-neutral-900 border border-neutral-800 rounded p-4 overflow-y-auto text-sm font-mono space-y-1 text-center text-neutral-400">
+                        <div class="text-amber-500">Battle Started!</div>
+                    </div>
+
+                    <!-- Post Battle Buttons -->
+                    <div id="battle-controls" class="hidden mt-8">
+                        <button onclick="closeBattle()" class="px-8 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded font-bold">Return</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- GAME STATE ---
+        const Game = {
+            gold: 0,
+            materials: {}, 
+            weapons: [],
+            equipped: { weapon: null, helmet: null, chestplate: null, leggings: null }, 
+            playerStats: { atk: 10, def: 0, maxHp: 200 }, 
+            warriorTimer: 60,
+            customers: [],
+            opponents: [], 
+            shopSelection: null, 
+            rockHP: 3,
+            maxRockHP: 3,
+            lastMineTime: 0, 
+            isForging: false,
+            forgeState: {
+                crucible: [], 
+                currentCheck: 0,
+                maxChecks: 10,
+                hits: 0,
+                active: false,
+                needleAngle: 0,
+                zoneStart: 0,
+                zoneWidth: 0.5,
+                perfectWidth: 0.15,
+                speed: 0.05,
+                speedMod: 1.0,
+                roundActive: false
+            },
+            battle: {
+                active: false,
+                turn: 0,
+                playerHp: 0,
+                enemyHp: 0,
+                enemy: null,
+                timer: null
+            }
+        };
+
+        const MATERIALS_DB = {
+            stone:      { name: 'Stone', rarity: 'common', weight: 200, color: '#a8a29e', icon: 'fa-cube', mult: 0.5, bg: 'bg-rarity-common' },
+            clay:       { name: 'Clay', rarity: 'common', weight: 150, color: '#d6c0a0', icon: 'fa-soap', mult: 0.3, bg: 'bg-rarity-common' },
+            gravel:     { name: 'Gravel', rarity: 'common', weight: 120, color: '#78716c', icon: 'fa-braille', mult: 0.2, bg: 'bg-rarity-common' },
+            sandstone:  { name: 'Sandstone', rarity: 'common', weight: 120, color: '#f5d0fe', icon: 'fa-square', mult: 0.4, bg: 'bg-rarity-common' },
+            coal:       { name: 'Coal', rarity: 'common', weight: 100, color: '#1c1917', icon: 'fa-fire-alt', mult: 0.6, bg: 'bg-rarity-common' },
+            flint:      { name: 'Flint', rarity: 'common', weight: 100, color: '#57534e', icon: 'fa-mountain', mult: 0.7, bg: 'bg-rarity-common' },
+            limestone:  { name: 'Limestone', rarity: 'common', weight: 90, color: '#e7e5e4', icon: 'fa-hockey-puck', mult: 0.5, bg: 'bg-rarity-common' },
+            slate:      { name: 'Slate', rarity: 'common', weight: 80, color: '#475569', icon: 'fa-layer-group', mult: 0.6, bg: 'bg-rarity-common' },
+            mudstone:   { name: 'Mudstone', rarity: 'common', weight: 80, color: '#5c4033', icon: 'fa-cookie', mult: 0.3, bg: 'bg-rarity-common' },
+            basalt:     { name: 'Basalt', rarity: 'common', weight: 70, color: '#262626', icon: 'fa-shapes', mult: 0.8, bg: 'bg-rarity-common' },
+            copper:     { name: 'Copper', rarity: 'uncommon', weight: 30, color: '#f97316', icon: 'fa-coins', mult: 1.0, bg: 'bg-rarity-uncommon' },
+            tin:        { name: 'Tin', rarity: 'uncommon', weight: 30, color: '#94a3b8', icon: 'fa-box', mult: 0.9, bg: 'bg-rarity-uncommon' },
+            iron:       { name: 'Iron', rarity: 'uncommon', weight: 25, color: '#64748b', icon: 'fa-cubes', mult: 1.2, bg: 'bg-rarity-uncommon' },
+            zinc:       { name: 'Zinc', rarity: 'uncommon', weight: 20, color: '#cbd5e1', icon: 'fa-battery-empty', mult: 1.1, bg: 'bg-rarity-uncommon' },
+            lead:       { name: 'Lead', rarity: 'uncommon', weight: 20, color: '#334155', icon: 'fa-weight-hanging', mult: 1.3, bg: 'bg-rarity-uncommon' },
+            nickel:     { name: 'Nickel', rarity: 'uncommon', weight: 15, color: '#e2e8f0', icon: 'fa-dot-circle', mult: 1.4, bg: 'bg-rarity-uncommon' },
+            pyrite:     { name: 'Pyrite', rarity: 'uncommon', weight: 15, color: '#fbbf24', icon: 'fa-gem', mult: 0.8, bg: 'bg-rarity-uncommon' },
+            quartz:     { name: 'Quartz', rarity: 'uncommon', weight: 15, color: '#f8fafc', icon: 'fa-crystal-ball', mult: 1.5, bg: 'bg-rarity-uncommon' },
+            bronze:     { name: 'Bronze', rarity: 'uncommon', weight: 12, color: '#b45309', icon: 'fa-shield-alt', mult: 1.6, bg: 'bg-rarity-uncommon' },
+            obsidian:   { name: 'Obsidian', rarity: 'uncommon', weight: 10, color: '#000000', icon: 'fa-moon', mult: 1.8, bg: 'bg-rarity-uncommon' },
+            silver:     { name: 'Silver', rarity: 'rare', weight: 4.0, color: '#e5e7eb', icon: 'fa-star', mult: 3.0, bg: 'bg-rarity-rare' },
+            gold:       { name: 'Gold', rarity: 'rare', weight: 3.5, color: '#facc15', icon: 'fa-crown', mult: 4.0, bg: 'bg-rarity-rare' },
+            platinum:   { name: 'Platinum', rarity: 'rare', weight: 3.0, color: '#a78bfa', icon: 'fa-certificate', mult: 5.0, bg: 'bg-rarity-rare' },
+            cobalt:     { name: 'Cobalt', rarity: 'rare', weight: 2.5, color: '#1d4ed8', icon: 'fa-circle', mult: 5.5, bg: 'bg-rarity-rare' },
+            titanium:   { name: 'Titanium', rarity: 'rare', weight: 2.0, color: '#475569', icon: 'fa-shield-virus', mult: 6.0, bg: 'bg-rarity-rare' },
+            tungsten:   { name: 'Tungsten', rarity: 'rare', weight: 2.0, color: '#3f3f46', icon: 'fa-dumbbell', mult: 6.5, bg: 'bg-rarity-rare' },
+            mercury:    { name: 'Mercury', rarity: 'rare', weight: 1.5, color: '#ef4444', icon: 'fa-thermometer-half', mult: 4.5, bg: 'bg-rarity-rare' },
+            amber:      { name: 'Amber', rarity: 'rare', weight: 1.5, color: '#d97706', icon: 'fa-leaf', mult: 3.5, bg: 'bg-rarity-rare' },
+            jade:       { name: 'Jade', rarity: 'rare', weight: 1.0, color: '#10b981', icon: 'fa-dragon', mult: 4.0, bg: 'bg-rarity-rare' },
+            topaz:      { name: 'Topaz', rarity: 'rare', weight: 1.0, color: '#fcd34d', icon: 'fa-sun', mult: 3.8, bg: 'bg-rarity-rare' },
+            mithril:    { name: 'Mithril', rarity: 'epic', weight: 0.5, color: '#60a5fa', icon: 'fa-feather-alt', mult: 12.0, bg: 'bg-rarity-epic' },
+            orichalcum: { name: 'Orichalcum', rarity: 'epic', weight: 0.4, color: '#be185d', icon: 'fa-fire', mult: 14.0, bg: 'bg-rarity-epic' },
+            adamantite: { name: 'Adamantite', rarity: 'epic', weight: 0.3, color: '#15803d', icon: 'fa-tree', mult: 15.0, bg: 'bg-rarity-epic' },
+            moonstone:  { name: 'Moonstone', rarity: 'epic', weight: 0.2, color: '#c084fc', icon: 'fa-moon', mult: 10.0, bg: 'bg-rarity-epic' },
+            sunstone:   { name: 'Sunstone', rarity: 'epic', weight: 0.2, color: '#fb923c', icon: 'fa-sun', mult: 11.0, bg: 'bg-rarity-epic' },
+            voidmetal:  { name: 'Void Metal', rarity: 'epic', weight: 0.1, color: '#312e81', icon: 'fa-ghost', mult: 18.0, bg: 'bg-rarity-epic' },
+            runite:     { name: 'Runite', rarity: 'epic', weight: 0.1, color: '#0ea5e9', icon: 'fa-magic', mult: 16.0, bg: 'bg-rarity-epic' },
+            dragonstone:{ name: 'Dragonstone', rarity: 'legendary', weight: 0.05, color: '#ef4444', icon: 'fa-dragon', mult: 30.0, bg: 'bg-rarity-legendary' },
+            starmetal:  { name: 'Star Metal', rarity: 'legendary', weight: 0.04, color: '#8b5cf6', icon: 'fa-star-of-life', mult: 35.0, bg: 'bg-rarity-legendary' },
+            soulshard:  { name: 'Soul Shard', rarity: 'legendary', weight: 0.03, color: '#2dd4bf', icon: 'fa-heart', mult: 40.0, bg: 'bg-rarity-legendary' },
+            godsbane:   { name: 'Godsbane', rarity: 'legendary', weight: 0.02, color: '#000000', icon: 'fa-skull', mult: 50.0, bg: 'bg-rarity-legendary' },
+            chronos:    { name: 'Chronos', rarity: 'legendary', weight: 0.01, color: '#f43f5e', icon: 'fa-hourglass', mult: 45.0, bg: 'bg-rarity-legendary' }
+        };
+
+        const ITEM_DB = {
+            'Dagger': { base: 8, type: 'Weapon', weight: 'light', minOre: 1, icon: 'fa-utensil-spoon' },
+            'Kunai': { base: 7, type: 'Weapon', weight: 'light', minOre: 1, icon: 'fa-location-arrow' },
+            'Sword': { base: 14, type: 'Weapon', weight: 'medium', minOre: 4, icon: 'fa-khanda' },
+            'Mace': { base: 16, type: 'Weapon', weight: 'medium', minOre: 4, icon: 'fa-gavel' },
+            'Katana': { base: 15, type: 'Weapon', weight: 'medium', minOre: 5, icon: 'fa-menorah' },
+            'Greatsword': { base: 28, type: 'Weapon', weight: 'heavy', minOre: 8, icon: 'fa-cross' },
+            'Greataxe': { base: 30, type: 'Weapon', weight: 'heavy', minOre: 8, icon: 'fa-battle-net' },
+            'Light Helm': { base: 5, type: 'Helmet', weight: 'light', minOre: 2, icon: 'fa-hat-wizard' },
+            'Iron Helm': { base: 10, type: 'Helmet', weight: 'medium', minOre: 4, icon: 'fa-helmet-safety' },
+            'Great Helm': { base: 18, type: 'Helmet', weight: 'heavy', minOre: 7, icon: 'fa-chess-rook' },
+            'Leather Tunic': { base: 8, type: 'Chestplate', weight: 'light', minOre: 2, icon: 'fa-shirt' },
+            'Chainmail': { base: 16, type: 'Chestplate', weight: 'medium', minOre: 5, icon: 'fa-tshirt' },
+            'Plate Armor': { base: 30, type: 'Chestplate', weight: 'heavy', minOre: 9, icon: 'fa-shield-alt' },
+            'Light Boots': { base: 4, type: 'Leggings', weight: 'light', minOre: 2, icon: 'fa-socks' },
+            'Iron Greaves': { base: 12, type: 'Leggings', weight: 'medium', minOre: 4, icon: 'fa-shoe-prints' },
+            'Plate Leggings': { base: 22, type: 'Leggings', weight: 'heavy', minOre: 7, icon: 'fa-boot' }
+        };
+
+        const PREFIXES = {
+            0: ['Broken', 'Rusty', 'Bent'],
+            3: ['Crude', 'Dull', 'Heavy'],
+            5: ['Standard', 'Solid', 'Reliable'],
+            7: ['Fine', 'Sharp', 'Balanced'],
+            9: ['Masterwork', 'Legendary', 'Godly']
+        };
+
+        // --- GLOBAL CANVAS VARS ---
+        let canvas, ctx, centerX, centerY, radius;
+
+        window.onload = function() {
+            // Init Canvas
+            canvas = document.getElementById('skill-check-canvas'); 
+            ctx = canvas.getContext('2d'); 
+            centerX = canvas.width / 2; 
+            centerY = canvas.height / 2; 
+            radius = 120;
+
+            renderInventory();
+            renderEquipment();
+            setupCanvasInput();
+            generateWarriors(true);
+            generateOpponents(true);
+            updateGoldUI();
+            
+            setInterval(() => {
+                Game.warriorTimer--;
+                if (Game.warriorTimer <= 0) {
+                    generateWarriors(true);
+                    generateOpponents(true);
+                    Game.warriorTimer = 60;
+                }
+                const timerEl = document.getElementById('warrior-timer');
+                if(timerEl) timerEl.innerText = Game.warriorTimer;
+            }, 1000);
+        };
+
+        function switchTab(tabId) {
+            if (Game.isForging) { if(!confirm("Leave the forge? Progress will be lost.")) return; stopForging(); }
+            if (Game.battle.active) { if(!confirm("Leave the battle? You will forfeit.")) return; closeBattle(); }
+            document.querySelectorAll('.btn-tab').forEach(b => { b.classList.remove('active'); b.style.borderBottom = '3px solid transparent'; b.style.color = '#e5e5e5'; b.style.backgroundColor = 'transparent'; });
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            activeBtn.classList.add('active'); activeBtn.style.borderBottom = '3px solid #f59e0b'; activeBtn.style.color = '#f59e0b'; activeBtn.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+            document.getElementById('content-mining').classList.add('hidden'); document.getElementById('content-forging').classList.add('hidden'); document.getElementById('content-shop').classList.add('hidden'); document.getElementById('content-inventory').classList.add('hidden'); document.getElementById('content-fight').classList.add('hidden');
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+            if (tabId === 'forging') updateForgeUI(); if (tabId === 'shop') renderShop(); if (tabId === 'inventory') { renderInventory(); renderEquipment(); } if (tabId === 'fight') renderArena();
+        }
+
+        // --- EQUIPMENT & INVENTORY ---
+        function getItemById(id) { return Game.weapons.find(w => w.id === id); }
+        function equipItem(id) { const item = getItemById(id); if (!item) return; const typeMap = { 'Weapon': 'weapon', 'Helmet': 'helmet', 'Chestplate': 'chestplate', 'Leggings': 'leggings' }; const slot = typeMap[item.type]; if (slot) Game.equipped[slot] = id; recalculateStats(); renderEquipment(); renderInventory(); }
+        function unequipItem(slot) { if (Game.equipped[slot]) { Game.equipped[slot] = null; recalculateStats(); renderEquipment(); renderInventory(); } }
+        function equipBest() { const best = { weapon: null, helmet: null, chestplate: null, leggings: null }; Game.weapons.forEach(w => { const typeMap = { 'Weapon': 'weapon', 'Helmet': 'helmet', 'Chestplate': 'chestplate', 'Leggings': 'leggings' }; const slot = typeMap[w.type]; if (slot) { if (!best[slot] || w.damage > best[slot].damage) best[slot] = w; } }); if (best.weapon) Game.equipped.weapon = best.weapon.id; if (best.helmet) Game.equipped.helmet = best.helmet.id; if (best.chestplate) Game.equipped.chestplate = best.chestplate.id; if (best.leggings) Game.equipped.leggings = best.leggings.id; recalculateStats(); renderEquipment(); renderInventory(); }
+        function recalculateStats() { let atk = 10; let def = 0; let hp = 200; const slots = ['helmet', 'weapon', 'chestplate', 'leggings']; slots.forEach(slot => { const itemId = Game.equipped[slot]; if (itemId) { const item = getItemById(itemId); if (item) { if (item.type === 'Weapon') { atk += item.damage; } else { def += item.damage; hp += item.damage * 5; } } } }); Game.playerStats = { atk, def, maxHp: hp }; }
+        function renderEquipment() { const slots = ['helmet', 'weapon', 'chestplate', 'leggings']; const icons = { 'helmet': 'fa-helmet-safety', 'weapon': 'fa-khanda', 'chestplate': 'fa-tshirt', 'leggings': 'fa-socks' }; slots.forEach(slot => { const el = document.getElementById(`slot-${slot}`); const itemId = Game.equipped[slot]; if (itemId) { const item = getItemById(itemId); if (item) { el.className = "slot filled aspect-square rounded flex flex-col items-center justify-center p-2 text-center relative group cursor-pointer hover:bg-neutral-700"; el.innerHTML = `<i class="fas ${getItemIcon(item.name)} text-${item.type === 'Weapon' ? 'amber' : 'blue'}-500 text-3xl mb-1"></i><span class="text-[10px] font-bold text-white leading-tight line-clamp-2">${item.name}</span><span class="text-[9px] text-${item.type === 'Weapon' ? 'red' : 'blue'}-300 mt-0.5">${item.damage} ${item.type === 'Weapon' ? 'ATK' : 'DEF'}</span><div class="absolute inset-0 bg-red-900/80 items-center justify-center rounded hidden group-hover:flex text-xs font-bold text-white">Unequip</div>`; } else { Game.equipped[slot] = null; resetSlot(el, slot.charAt(0).toUpperCase() + slot.slice(1), icons[slot]); } } else { resetSlot(el, slot.charAt(0).toUpperCase() + slot.slice(1), icons[slot]); } }); const statAtk = document.getElementById('stat-atk'); if(statAtk) statAtk.innerText = Game.playerStats.atk; const statDef = document.getElementById('stat-def'); if(statDef) statDef.innerText = Game.playerStats.def; const fightHp = document.getElementById('fight-stat-hp'); if(fightHp) fightHp.innerText = Game.playerStats.maxHp; const fightAtk = document.getElementById('fight-stat-atk'); if(fightAtk) fightAtk.innerText = Game.playerStats.atk; const fightDef = document.getElementById('fight-stat-def'); if(fightDef) fightDef.innerText = Game.playerStats.def; }
+        function resetSlot(el, label, icon) { el.className = "slot aspect-square rounded flex flex-col items-center justify-center p-2 text-center relative group cursor-pointer hover:bg-neutral-800"; el.innerHTML = `<i class="fas ${icon} text-neutral-600 text-3xl mb-1"></i><span class="text-xs text-neutral-500">${label}</span>`; }
+        function getItemIcon(name) { const suffixes = Object.keys(ITEM_DB); suffixes.sort((a,b) => b.length - a.length); const match = suffixes.find(s => name.endsWith(s)); return match ? ITEM_DB[match].icon : 'fa-question'; }
+        function renderInventory() { const list = document.getElementById('inventory-list'); let html = ''; const rarityOrder = { 'legendary': 5, 'epic': 4, 'rare': 3, 'uncommon': 2, 'common': 1 }; const sortedMaterials = Object.keys(Game.materials).sort((a,b) => { const diff = rarityOrder[MATERIALS_DB[b].rarity] - rarityOrder[MATERIALS_DB[a].rarity]; if (diff !== 0) return diff; return MATERIALS_DB[b].mult - MATERIALS_DB[a].mult; }); if (sortedMaterials.length === 0) html = '<div class="col-span-full text-neutral-500 text-sm italic p-2 text-center">Empty...</div>'; else { sortedMaterials.forEach(key => { const count = Game.materials[key]; if (count > 0) { const mat = MATERIALS_DB[key]; html += `<div class="flex flex-col justify-center items-center ${mat.bg} p-2 rounded border shadow-sm aspect-square text-center"><i class="fas ${mat.icon} text-2xl mb-1" style="color: ${mat.color}"></i><span class="text-[10px] font-bold text-white shadow-black drop-shadow-md leading-tight">${mat.name}</span><span class="text-[9px] text-white/80 font-mono">x${count}</span></div>`; } }); } list.innerHTML = html; const wList = document.getElementById('weapon-list'); let wHtml = ''; if (Game.weapons.length === 0) wHtml = '<div class="text-neutral-500 text-sm italic p-2 text-center">No items forged yet.</div>'; else { Game.weapons.slice().reverse().forEach(w => { const isEquipped = (Game.equipped.weapon === w.id || Game.equipped.helmet === w.id || Game.equipped.chestplate === w.id || Game.equipped.leggings === w.id); let rarityClass = 'text-gray-400'; if (w.quality >= 7) rarityClass = 'text-purple-400'; if (w.quality >= 9) rarityClass = 'text-yellow-500'; const typeLabel = w.type === 'Weapon' ? 'DMG' : 'DEF'; const equipBtn = isEquipped ? `<span class="text-[10px] text-blue-400 font-bold ml-2">EQUIPPED</span>` : `<button onclick="equipItem(${w.id})" class="text-[10px] bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-neutral-300">Equip</button>`; wHtml += `<div class="bg-neutral-800 p-3 rounded border border-neutral-700"><div class="flex justify-between items-center mb-1"><div class="font-bold ${rarityClass} text-sm">${w.name}</div>${equipBtn}</div><div class="flex justify-between text-xs text-neutral-500 mt-1"><span>${w.type} • ${typeLabel}: ${w.damage}</span><span>Val: ${w.value}g</span></div></div>`; }); } wList.innerHTML = wHtml; }
+
+        // --- MINING ---
+        function hitRock(event) {
+            const now = Date.now();
+            if (now - (Game.lastMineTime || 0) < 100) return; 
+            Game.lastMineTime = now;
+            const rock = document.getElementById('rock-element'); const hpBar = document.getElementById('rock-hp-bar'); rock.classList.remove('shake-anim'); void rock.offsetWidth; rock.classList.add('shake-anim'); const rect = rock.getBoundingClientRect(); const x = event.clientX || (rect.left + rect.width/2); const y = event.clientY || (rect.top + rect.height/2); spawnFloatingText(x, y, "CLANG!"); Game.rockHP--; if (Game.rockHP === 2) document.getElementById('rock-crack-1').classList.remove('hidden'); if (Game.rockHP === 1) document.getElementById('rock-crack-2').classList.remove('hidden'); const percent = (Game.rockHP / Game.maxRockHP) * 100; hpBar.style.width = `${percent}%`; if (Game.rockHP <= 0) breakRock(rect); 
+        }
+        function breakRock(rect) { let totalWeight = 0; for (const key in MATERIALS_DB) totalWeight += MATERIALS_DB[key].weight; let randomNum = Math.random() * totalWeight; let droppedMaterial = 'stone'; for (const key in MATERIALS_DB) { randomNum -= MATERIALS_DB[key].weight; if (randomNum <= 0) { droppedMaterial = key; break; } } if (!Game.materials[droppedMaterial]) Game.materials[droppedMaterial] = 0; Game.materials[droppedMaterial]++; spawnFloatingText(rect.left + rect.width/2, rect.top, `+1 ${MATERIALS_DB[droppedMaterial].name}`, MATERIALS_DB[droppedMaterial].color); Game.rockHP = Game.maxRockHP; document.getElementById('rock-hp-bar').style.width = '100%'; setTimeout(() => { document.getElementById('rock-crack-1').classList.add('hidden'); document.getElementById('rock-crack-2').classList.add('hidden'); }, 200); }
+        function spawnFloatingText(x, y, text, color = '#ffffff') { const el = document.createElement('div'); el.className = 'floating-text'; el.innerText = text; el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.color = color; document.body.appendChild(el); setTimeout(() => el.remove(), 1000); }
+
+        // --- FORGING ---
+        function updateForgeUI() { const listContainer = document.getElementById('forge-materials-list'); let listHtml = ''; const crucibleCounts = {}; Game.forgeState.crucible.forEach(k => crucibleCounts[k] = (crucibleCounts[k] || 0) + 1); const keys = Object.keys(Game.materials); keys.sort((a,b) => MATERIALS_DB[b].mult - MATERIALS_DB[a].mult); if (keys.length === 0) listHtml = '<div class="col-span-3 text-center text-neutral-500 italic">Inventory Empty</div>'; else { keys.forEach(key => { const totalOwned = Game.materials[key]; const used = crucibleCounts[key] || 0; const available = totalOwned - used; const mat = MATERIALS_DB[key]; if (totalOwned > 0) { const disabled = available <= 0 ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:scale-105 hover:bg-neutral-700 cursor-pointer'; const onclick = available > 0 ? `addToCrucible('${key}')` : ''; listHtml += `<div onclick="${onclick}" class="flex flex-col items-center justify-center p-2 rounded transition-all duration-200 bg-neutral-800 border border-neutral-700 ${disabled}"><i class="fas ${mat.icon} text-lg mb-1" style="color: ${mat.color}"></i><span class="text-[10px] font-bold text-gray-300 text-center leading-tight">${mat.name}<br><span class="text-amber-500 font-mono">(${mat.mult}x)</span></span><span class="text-[10px] text-neutral-500 mt-1">Left: ${available}</span></div>`; } }); } listContainer.innerHTML = listHtml; const crucibleContainer = document.getElementById('crucible-list'); let crucibleHtml = ''; if (Game.forgeState.crucible.length === 0) crucibleHtml = '<span class="text-neutral-600 text-sm italic w-full text-center py-4">Crucible is empty. Add materials...</span>'; else { Game.forgeState.crucible.forEach((key, index) => { const mat = MATERIALS_DB[key]; crucibleHtml += `<div onclick="removeFromCrucible(${index})" class="animate-pulse cursor-pointer bg-neutral-900 border border-amber-500/30 rounded p-2 flex items-center gap-2 hover:bg-red-900/30 group"><i class="fas ${mat.icon} text-sm" style="color: ${mat.color}"></i><span class="text-xs text-gray-300 group-hover:hidden">${mat.name}</span><span class="text-xs text-red-400 hidden group-hover:inline"><i class="fas fa-times"></i> Remove</span></div>`; }); } crucibleContainer.innerHTML = crucibleHtml; updatePredictions(); }
+        function addToCrucible(key) { Game.forgeState.crucible.push(key); updateForgeUI(); }
+        function removeFromCrucible(index) { Game.forgeState.crucible.splice(index, 1); updateForgeUI(); }
+        function updatePredictions() { const mass = Game.forgeState.crucible.length; const btn = document.getElementById('btn-start-forge'); const predMass = document.getElementById('pred-mass'); const predPower = document.getElementById('pred-power'); const predChances = document.getElementById('pred-chances'); predMass.innerText = mass; if (mass === 0) { btn.disabled = true; btn.classList.add('bg-neutral-800', 'text-neutral-500', 'cursor-not-allowed'); btn.classList.remove('bg-amber-700', 'text-white'); predPower.innerText = "0.0x"; predChances.innerHTML = "<li>Add ores...</li>"; return; } btn.disabled = false; btn.classList.remove('bg-neutral-800', 'text-neutral-500', 'cursor-not-allowed'); btn.classList.add('bg-amber-700', 'text-white', 'cursor-pointer'); let totalMult = 0; Game.forgeState.crucible.forEach(k => totalMult += MATERIALS_DB[k].mult); const quantityBonus = 1 + (mass * 0.05); const avgMult = (totalMult / mass) * quantityBonus; predPower.innerText = avgMult.toFixed(2) + "x"; let likelyPool = []; if (mass <= 3) likelyPool = ["Daggers", "Light Armor", "Small Tools"]; else if (mass <= 7) likelyPool = ["Swords", "Maces", "Chainmail", "Katanas"]; else likelyPool = ["Greatswords", "Plate Armor", "Heavy Axes"]; let poolHtml = ''; likelyPool.forEach(p => poolHtml += `<li>${p}</li>`); if (mass > 10) poolHtml += `<li class="text-amber-500 font-bold">Massive Bonus!</li>`; predChances.innerHTML = poolHtml; }
+        function startForging() { if (Game.forgeState.crucible.length === 0) return; Game.forgeState.crucible.forEach(key => { Game.materials[key]--; if (Game.materials[key] <= 0) delete Game.materials[key]; }); document.getElementById('forge-setup').classList.add('hidden'); document.getElementById('forge-minigame').classList.remove('hidden'); document.getElementById('forge-minigame').classList.add('flex'); Game.isForging = true; Game.forgeState.currentCheck = 1; Game.forgeState.hits = 0; Game.forgeState.active = true; Game.forgeState.speedMod = 1.0; updateMinigameUI(); startSkillCheckRound(); requestAnimationFrame(gameLoop); }
+        function stopForging() { Game.isForging = false; Game.forgeState.active = false; Game.forgeState.crucible = []; document.getElementById('forge-minigame').classList.add('hidden'); document.getElementById('forge-minigame').classList.remove('flex'); document.getElementById('forge-setup').classList.remove('hidden'); updateForgeUI(); }
+        function updateMinigameUI() { document.getElementById('skill-check-count').innerText = `Stage: ${Game.forgeState.currentCheck}/10`; document.getElementById('skill-check-hits').innerText = `Score: ${Game.forgeState.hits}`; }
+        function startSkillCheckRound() { Game.forgeState.needleAngle = 0; const randomOffset = Math.random() * (Math.PI * 1.5); Game.forgeState.zoneStart = randomOffset % (2 * Math.PI); Game.forgeState.zoneWidth = Math.max(0.6, 1.2 - (Game.forgeState.currentCheck * 0.06)); Game.forgeState.perfectWidth = Game.forgeState.zoneWidth * 0.25; let baseSpeed = 0.04 + (Game.forgeState.currentCheck * 0.008); if (Game.forgeState.speedMod) baseSpeed *= Game.forgeState.speedMod; Game.forgeState.speed = Math.max(0.02, baseSpeed); Game.forgeState.roundActive = true; }
+        function gameLoop() { if (!Game.isForging) return; if (Game.forgeState.roundActive) Game.forgeState.needleAngle += Game.forgeState.speed; drawCanvas(); requestAnimationFrame(gameLoop); }
+        function drawCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); ctx.strokeStyle = '#333'; ctx.lineWidth = 20; ctx.stroke(); const normAngle = Game.forgeState.needleAngle % (2 * Math.PI); if (Game.forgeState.roundActive) { ctx.beginPath(); ctx.arc(centerX, centerY, radius, Game.forgeState.zoneStart, Game.forgeState.zoneStart + Game.forgeState.zoneWidth); ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 20; ctx.stroke(); const perfStart = Game.forgeState.zoneStart + (Game.forgeState.zoneWidth - Game.forgeState.perfectWidth) / 2; ctx.beginPath(); ctx.arc(centerX, centerY, radius, perfStart, perfStart + Game.forgeState.perfectWidth); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 20; ctx.stroke(); ctx.beginPath(); ctx.arc(centerX, centerY, radius, Game.forgeState.zoneStart, Game.forgeState.zoneStart + Game.forgeState.zoneWidth); ctx.strokeStyle = '#ffffff55'; ctx.lineWidth = 2; ctx.stroke(); } const needleX = centerX + radius * Math.cos(normAngle); const needleY = centerY + radius * Math.sin(normAngle); ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(needleX, needleY); ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke(); ctx.beginPath(); ctx.arc(centerX, centerY, 10, 0, 2 * Math.PI); ctx.fillStyle = '#111'; ctx.fill(); ctx.stroke(); }
+        function setupCanvasInput() { document.addEventListener('keydown', (e) => { if (e.code === 'Space' && Game.isForging && Game.forgeState.roundActive) { e.preventDefault(); handleInput(); } }); canvas.addEventListener('mousedown', (e) => { if(Game.isForging && Game.forgeState.roundActive) handleInput(); }); }
+        function handleInput() { if (!Game.forgeState.roundActive) return; Game.forgeState.roundActive = false; const current = Game.forgeState.needleAngle % (2 * Math.PI); const goodStart = Game.forgeState.zoneStart; const goodWidth = Game.forgeState.zoneWidth; const perfWidth = Game.forgeState.perfectWidth; const perfStart = goodStart + (goodWidth - perfWidth) / 2; const checkCollision = (angle, start, width) => { let a = angle % (2 * Math.PI); let s = start % (2 * Math.PI); let e = (start + width) % (2 * Math.PI); if (s < e) return a >= s && a <= e; return a >= s || a <= e; }; let resultType = 0; let points = 0; if (checkCollision(current, perfStart, perfWidth)) { resultType = 2; points = 1; } else if (checkCollision(current, goodStart, goodWidth)) { resultType = 1; points = 0.5; } else { Game.forgeState.speedMod *= 0.65; } showFeedback(resultType); if (points > 0) Game.forgeState.hits += points; setTimeout(() => { Game.forgeState.currentCheck++; updateMinigameUI(); if (Game.forgeState.currentCheck > Game.forgeState.maxChecks) finishForging(); else startSkillCheckRound(); }, 500); }
+        function showFeedback(resultType) { const fb = document.getElementById('feedback-text'); if (resultType === 2) { fb.innerText = "PERFECT!"; fb.style.color = "#ffffff"; fb.style.textShadow = "0 0 15px #22c55e"; } else if (resultType === 1) { fb.innerText = "GOOD"; fb.style.color = "#f59e0b"; fb.style.textShadow = "0 0 10px black"; } else { fb.innerText = "MISS"; fb.style.color = "#ef4444"; fb.style.textShadow = "0 0 10px black"; } fb.style.animation = 'none'; fb.offsetHeight; fb.style.animation = 'floatText 0.5s ease-out forwards'; }
+        function finishForging() { Game.isForging = false; document.getElementById('forge-minigame').classList.add('hidden'); document.getElementById('forge-minigame').classList.remove('flex'); const score = Game.forgeState.hits; const mass = Game.forgeState.crucible.length; let tier = 'light'; if (mass >= 4) tier = 'medium'; if (mass >= 8) tier = 'heavy'; const availableItems = Object.keys(ITEM_DB).filter(k => { const item = ITEM_DB[k]; if (tier === 'light') return item.weight === 'light'; if (tier === 'medium') return item.weight === 'medium' || item.weight === 'light'; if (tier === 'heavy') return item.weight === 'heavy' || item.weight === 'medium'; return false; }); const itemKey = availableItems[Math.floor(Math.random() * availableItems.length)]; const itemBase = ITEM_DB[itemKey]; let totalMult = 0; Game.forgeState.crucible.forEach(k => totalMult += MATERIALS_DB[k].mult); let avgMult = totalMult / mass; avgMult *= (1 + (mass * 0.05)); let qualityTier = 0; let qualityText = "Common"; let qualityColor = "text-gray-400"; if (score <= 3) { qualityText = "Poor"; qualityColor = "text-stone-500"; } else if (score <= 5.5) { qualityTier = 3; qualityText = "Common"; qualityColor = "text-gray-400"; } else if (score <= 7.5) { qualityTier = 5; qualityText = "Rare"; qualityColor = "text-blue-400"; } else if (score <= 9) { qualityTier = 7; qualityText = "Epic"; qualityColor = "text-purple-400"; } else { qualityTier = 9; qualityText = "Legendary"; qualityColor = "text-yellow-500"; } const prefixes = PREFIXES[Object.keys(PREFIXES).reverse().find(k => score >= k)]; const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]; const counts = {}; let domMat = Game.forgeState.crucible[0]; let maxCount = 0; Game.forgeState.crucible.forEach(k => { counts[k] = (counts[k] || 0) + 1; if (counts[k] > maxCount) { maxCount = counts[k]; domMat = k; } }); const matName = MATERIALS_DB[domMat].name.split(' ')[0]; const itemName = `${prefix} ${matName} ${itemKey}`; const qualityMult = 0.5 + (score / 10); const finalVal = Math.floor(itemBase.base * avgMult * qualityMult); const goldValue = Math.floor(finalVal * 5); const newItem = { id: Date.now(), name: itemName, quality: score, damage: finalVal, value: goldValue, type: itemBase.type, baseItem: itemKey }; Game.weapons.push(newItem); Game.forgeState.crucible = []; const modal = document.getElementById('forge-result'); modal.classList.remove('hidden'); modal.classList.add('flex'); document.getElementById('result-icon').className = `fas ${itemBase.icon} text-6xl text-amber-500 mb-4 block relative z-10`; document.getElementById('result-weapon-name').innerText = itemName; const qEl = document.getElementById('result-weapon-quality'); qEl.innerText = qualityText + " Quality"; qEl.className = "text-sm font-bold uppercase tracking-widest mt-1 relative z-10 " + qualityColor; document.getElementById('result-type').innerText = itemBase.type + " (" + itemBase.weight + ")"; document.getElementById('result-damage').innerText = finalVal; document.getElementById('result-damage').className = itemBase.type === 'Weapon' ? 'text-red-400' : 'text-blue-400'; document.getElementById('result-value').innerText = goldValue + "g"; document.getElementById('result-score').innerText = score + "/10"; }
+        function closeResult() { document.getElementById('forge-result').classList.add('hidden'); document.getElementById('forge-result').classList.remove('flex'); updateForgeUI(); document.getElementById('forge-setup').classList.remove('hidden'); switchTab('inventory'); }
+
+        // --- SHOP & ECONOMY ---
+        function updateGoldUI() { document.getElementById('gold-display').innerText = Game.gold; }
+        
+        function generateWarriors(force = false) {
+            if (force && Game.customers.length >= 3) Game.customers.shift(); 
+            else if (!force && Game.customers.length >= 3) return;
+            const needed = 3 - Game.customers.length;
+            const toAdd = force ? 1 : needed;
+            const names = ["Bjorn", "Ragnar", "Lagertha", "Rollo", "Floki", "Astrid", "Torvi", "Ivar", "Ubbe", "Hvitserk"];
+            const titles = ["the Strong", "the Swift", "Ironside", "the Boneless", "Shield-Maiden", "the Builder", "Lothbrok"];
+            const requests = [
+                { type: "Weapon", label: "Any Weapon", bonus: 1.2 }, { type: "Armor", label: "Any Armor", bonus: 1.2 },
+                { type: "heavy", label: "Heavy Gear", bonus: 1.3 }, { type: "light", label: "Light Gear", bonus: 1.3 },
+                { key: "Sword", label: "A Sword", bonus: 1.5 }, { key: "Greatsword", label: "A Greatsword", bonus: 1.6 },
+                { key: "Plate Armor", label: "Plate Armor", bonus: 1.6 }, { key: "Helmet", label: "A Helmet", bonus: 1.4 },
+                { key: "Leggings", label: "Leggings", bonus: 1.4 }, { key: "Dragonstone", label: "Dragon Item", bonus: 2.0 }
+            ];
+            for(let i=0; i<toAdd; i++) {
+                if (Game.customers.length >= 3) break;
+                const name = names[Math.floor(Math.random() * names.length)];
+                const title = titles[Math.floor(Math.random() * titles.length)];
+                const req = requests[Math.floor(Math.random() * requests.length)];
+                Game.customers.push({ name: `${name} ${title}`, request: req, id: Date.now() + Math.random() });
+            }
+            if(!document.getElementById('content-shop').classList.contains('hidden')) renderShop();
+        }
+
+        function renderShop() {
+            const invList = document.getElementById('shop-inventory-list');
+            let invHtml = '';
+            if (Game.weapons.length === 0) invHtml = '<div class="text-neutral-500 text-center py-4">No items to sell.</div>';
+            else {
+                Game.weapons.slice().reverse().forEach((w, index) => {
+                    const actualIndex = Game.weapons.length - 1 - index;
+                    const isSelected = Game.shopSelection === actualIndex;
+                    const isEquipped = (Game.equipped.weapon === w.id || Game.equipped.helmet === w.id || Game.equipped.chestplate === w.id || Game.equipped.leggings === w.id);
+                    let rarityClass = 'text-gray-400 border-neutral-700';
+                    if (w.quality >= 7) rarityClass = 'text-purple-400 border-purple-900/50';
+                    if (w.quality >= 9) rarityClass = 'text-yellow-500 border-yellow-900/50';
+                    const bgClass = isSelected ? 'bg-amber-900/30 border-amber-500' : 'bg-neutral-800 ' + rarityClass;
+                    const opacity = isEquipped ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-700 cursor-pointer';
+                    const onclick = isEquipped ? '' : `onclick="selectShopItem(${actualIndex})"`;
+                    const equippedBadge = isEquipped ? '<span class="text-[10px] bg-blue-900 text-blue-200 px-1 rounded ml-2">EQUIPPED</span>' : '';
+                    invHtml += `<div ${onclick} class="p-3 rounded border transition-all ${bgClass} ${opacity}"><div class="flex justify-between items-center"><span class="font-bold ${rarityClass.split(' ')[0]} flex items-center">${w.name} ${equippedBadge}</span><span class="text-yellow-500 text-xs font-mono">${w.value}g</span></div><div class="text-xs text-neutral-500 mt-1 flex justify-between"><span>${w.type} (${ITEM_DB[w.name.split(' ').pop()]?.weight || '?'})</span><span>Q: ${w.quality}/10</span></div></div>`;
+                });
+            }
+            invList.innerHTML = invHtml;
+            const merchantBtn = document.getElementById('btn-sell-merchant');
+            const merchantPrice = document.getElementById('merchant-price');
+            if (Game.shopSelection !== null && Game.weapons[Game.shopSelection]) {
+                const item = Game.weapons[Game.shopSelection];
+                const price = Math.floor(item.value * 0.5);
+                merchantBtn.disabled = false;
+                merchantBtn.classList.remove('bg-neutral-700', 'text-neutral-300');
+                merchantBtn.classList.add('bg-amber-700', 'text-white');
+                merchantPrice.innerText = price;
+            } else {
+                merchantBtn.disabled = true;
+                merchantBtn.classList.add('bg-neutral-700', 'text-neutral-300');
+                merchantBtn.classList.remove('bg-amber-700', 'text-white');
+                merchantPrice.innerText = '0';
+            }
+            const warriorList = document.getElementById('warrior-list');
+            let warHtml = '';
+            Game.customers.forEach((c, index) => {
+                let offerPrice = 0; let canBuy = false; let statusText = "Looking for items..."; let statusColor = "text-neutral-500";
+                
+                if (Game.shopSelection !== null && Game.weapons[Game.shopSelection]) {
+                    const item = Game.weapons[Game.shopSelection];
+                    let baseKey = item.baseItem; 
+                    if (!baseKey) {
+                        const keys = Object.keys(ITEM_DB);
+                        keys.sort((a,b) => b.length - a.length);
+                        baseKey = keys.find(k => item.name.endsWith(k));
+                    }
+                    const dbItem = ITEM_DB[baseKey];
+                    const itemWeight = dbItem ? dbItem.weight : null;
+
+                    let match = false;
+                    
+                    if (c.request.key) {
+                        if (item.name.includes(c.request.key)) match = true;
+                    } else if (c.request.type) {
+                        if (c.request.type === "Weapon" && item.type === "Weapon") match = true;
+                        else if (c.request.type === "Armor" && item.type !== "Weapon") match = true;
+                        else if (itemWeight && c.request.type === itemWeight) match = true;
+                    }
+
+                    if (match) {
+                        offerPrice = Math.floor(item.value * c.request.bonus);
+                        canBuy = true;
+                        statusText = `Will pay ${offerPrice}g!`;
+                        statusColor = "text-green-400 font-bold";
+                    } else { statusText = "Not interested."; statusColor = "text-red-500"; }
+                }
+                warHtml += `<div class="bg-neutral-800 p-4 rounded-lg border border-neutral-700 flex justify-between items-center shadow-md"><div><div class="flex items-center gap-2 mb-1"><i class="fas fa-user-shield text-neutral-400"></i><span class="font-bold text-neutral-200">${c.name}</span></div><div class="text-xs text-amber-500 mb-2">Wants: ${c.request.label}</div><div class="text-xs ${statusColor}">${statusText}</div></div><button onclick="sellToWarrior(${index})" ${canBuy ? '' : 'disabled'} class="px-4 py-2 rounded text-sm font-bold transition-colors ${canBuy ? 'bg-green-700 text-white hover:bg-green-600 shadow-lg' : 'bg-neutral-700 text-neutral-500 cursor-not-allowed'}">Sell</button></div>`;
+            });
+            warriorList.innerHTML = warHtml;
+        }
+
+        function selectShopItem(index) { if (Game.shopSelection === index) Game.shopSelection = null; else Game.shopSelection = index; renderShop(); }
+        function sellToMerchant() { if (Game.shopSelection === null) return; const item = Game.weapons[Game.shopSelection]; const price = Math.floor(item.value * 0.5); performSale(price, "Merchant"); }
+        function sellToWarrior(customerIndex) { if (Game.shopSelection === null) return; const item = Game.weapons[Game.shopSelection]; const customer = Game.customers[customerIndex]; const price = Math.floor(item.value * customer.request.bonus); performSale(price, customer.name); Game.customers.splice(customerIndex, 1); }
+        function performSale(amount, buyerName) { Game.gold += amount; updateGoldUI(); const btn = document.getElementById('tab-shop'); const rect = btn.getBoundingClientRect(); spawnFloatingText(rect.left + 20, rect.top + 50, `+${amount}g`, '#facc15'); const soldItem = Game.weapons[Game.shopSelection]; if (Game.equipped.weapon === soldItem.id) Game.equipped.weapon = null; if (Game.equipped.helmet === soldItem.id) Game.equipped.helmet = null; if (Game.equipped.chestplate === soldItem.id) Game.equipped.chestplate = null; if (Game.equipped.leggings === soldItem.id) Game.equipped.leggings = null; Game.weapons.splice(Game.shopSelection, 1); Game.shopSelection = null; renderShop(); const goldDisplay = document.getElementById('gold-display'); goldDisplay.classList.add('gold-shine'); setTimeout(() => goldDisplay.classList.remove('gold-shine'), 500); }
+
+        // --- FIGHT SYSTEM ---
+        function getMaxPlayerPower() {
+            let maxAtk = 10;
+            let maxDef = 0;
+            const weapons = Game.weapons.filter(w => w.type === 'Weapon');
+            if (weapons.length > 0) maxAtk += Math.max(...weapons.map(w => w.damage));
+            ['Helmet', 'Chestplate', 'Leggings'].forEach(type => {
+                const armors = Game.weapons.filter(w => w.type === type);
+                if (armors.length > 0) maxDef += Math.max(...armors.map(w => w.damage));
+            });
+            return { atk: maxAtk, def: maxDef, maxHp: 200 + (maxDef * 5) };
+        }
+
+        function generateOpponents(force = false) {
+            if (!force && Game.opponents.length > 0) return;
+            Game.opponents = [];
+            const names = ["Orc Grunt", "Bandit", "Skeleton", "Dark Elf", "Goblin Chief", "Berserker", "Troll", "Shadow Assassin"];
+            const icons = ["fa-pastafarianism", "fa-user-ninja", "fa-skull", "fa-user-secret", "fa-frog", "fa-angry", "fa-hippo", "fa-ghost"];
+            const pStats = getMaxPlayerPower();
+            for(let i=0; i<3; i++) {
+                const isBoss = Math.random() > 0.8;
+                const scale = 0.5 + (Math.random() * 0.8) + (isBoss ? 0.5 : 0); 
+                const hp = Math.max(100, Math.floor(pStats.maxHp * scale));
+                const atk = Math.max(5, Math.floor(pStats.atk * scale));
+                const def = Math.max(0, Math.floor(pStats.def * scale * 0.5));
+                Game.opponents.push({ name: names[Math.floor(Math.random() * names.length)], icon: icons[Math.floor(Math.random() * icons.length)], hp: hp, maxHp: hp, atk: atk, def: def, level: Math.floor(scale * 10) + 1, goldReward: Math.floor(scale * 100) + 20 });
+            }
+            if (!document.getElementById('content-fight').classList.contains('hidden')) renderArena();
+        }
+
+        function renderArena() { const list = document.getElementById('arena-list'); let html = ''; Game.opponents.forEach((op, index) => { html += `<div class="bg-neutral-800 border border-neutral-700 p-6 rounded-lg flex flex-col items-center shadow-lg hover:border-red-500/50 transition-colors"><div class="w-24 h-24 bg-neutral-900 rounded-full flex items-center justify-center text-4xl text-red-500 mb-4 border-2 border-neutral-700"><i class="fas ${op.icon}"></i></div><h3 class="text-xl font-bold text-white mb-1">${op.name}</h3><p class="text-xs text-neutral-500 mb-4">Level ${op.level} Warrior</p><div class="w-full space-y-2 text-sm font-mono text-neutral-400 mb-6"><div class="flex justify-between border-b border-neutral-700 pb-1"><span>HP</span> <span class="text-green-500">${op.maxHp}</span></div><div class="flex justify-between border-b border-neutral-700 pb-1"><span>ATK</span> <span class="text-red-500">${op.atk}</span></div><div class="flex justify-between"><span>DEF</span> <span class="text-blue-500">${op.def}</span></div></div><button onclick="startBattle('arena', ${index})" class="w-full py-2 bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white rounded border border-red-900 font-bold uppercase tracking-wider transition-all">FIGHT</button></div>`; }); list.innerHTML = html; }
+        
+        function startBattle(type, index) { 
+            let enemy; 
+            const pStats = getMaxPlayerPower();
+            if (type === 'dungeon') { 
+                const scale = 2.0 + (Math.random() * 2.0); 
+                enemy = { name: "Dungeon Boss", icon: "fa-dragon", hp: Math.max(500, Math.floor(pStats.maxHp * scale)), maxHp: Math.max(500, Math.floor(pStats.maxHp * scale)), atk: Math.max(20, Math.floor(pStats.atk * scale)), def: Math.max(10, Math.floor(pStats.def * scale)), goldReward: Math.floor(scale * 300), level: Math.floor(scale * 10) + 20 }; 
+            } else { 
+                enemy = {...Game.opponents[index]}; 
+            } 
+            Game.battle = { active: true, turn: 0, playerHp: Game.playerStats.maxHp, enemyHp: enemy.hp, enemy: enemy, log: [] }; 
+            const view = document.getElementById('battle-view'); view.classList.remove('hidden'); view.classList.add('flex'); document.getElementById('battle-controls').classList.add('hidden'); document.getElementById('enemy-name').innerText = enemy.name; document.getElementById('enemy-icon').className = `fas ${enemy.icon}`; document.getElementById('battle-log').innerHTML = '<div class="text-amber-500">Battle Started!</div>'; updateBattleUI(); setTimeout(battleLoop, 1000); 
+        }
+
+        function battleLoop() { if (!Game.battle.active) return; Game.battle.turn++; const { playerHp, enemy, turn } = Game.battle; const pDmgRaw = Game.playerStats.atk - (enemy.def * 0.5); const pDmg = Math.max(1, Math.floor(pDmgRaw * (0.8 + Math.random() * 0.4))); Game.battle.enemyHp -= pDmg; logBattle(`You hit ${enemy.name} for <span class="text-red-400 font-bold">${pDmg}</span> dmg!`); animateAttack('player', pDmg); updateBattleUI(); if (Game.battle.enemyHp <= 0) { endBattle(true); return; } setTimeout(() => { if (!Game.battle.active) return; const eDmgRaw = enemy.atk - (Game.playerStats.def * 0.5); const eDmg = Math.max(1, Math.floor(eDmgRaw * (0.8 + Math.random() * 0.4))); Game.battle.playerHp -= eDmg; logBattle(`${enemy.name} hits you for <span class="text-red-500 font-bold">${eDmg}</span> dmg!`); animateAttack('enemy', eDmg); updateBattleUI(); if (Game.battle.playerHp <= 0) { endBattle(false); } else { setTimeout(battleLoop, 1500); } }, 750); }
+        function animateAttack(attacker, damage) { const pEl = document.getElementById('fighter-player'); const eEl = document.getElementById('fighter-enemy'); if (attacker === 'player') { pEl.classList.add('attack-left'); setTimeout(() => { pEl.classList.remove('attack-left'); eEl.classList.add('hit-anim'); setTimeout(() => eEl.classList.remove('hit-anim'), 400); showFloatingDamage(eEl, damage); }, 150); } else { eEl.classList.add('attack-right'); setTimeout(() => { eEl.classList.remove('attack-right'); pEl.classList.add('hit-anim'); setTimeout(() => pEl.classList.remove('hit-anim'), 400); showFloatingDamage(pEl, damage); }, 150); } }
+        function showFloatingDamage(targetEl, amount) { const d = document.createElement('div'); d.className = 'damage-number text-red-500'; d.innerText = amount; d.style.left = (targetEl.getBoundingClientRect().width / 2) + 'px'; d.style.top = '20px'; targetEl.appendChild(d); setTimeout(() => d.remove(), 1000); }
+        function logBattle(msg) { const log = document.getElementById('battle-log'); const entry = document.createElement('div'); entry.innerHTML = msg; log.appendChild(entry); log.scrollTop = log.scrollHeight; }
+        function updateBattleUI() { const pPct = Math.max(0, (Game.battle.playerHp / Game.playerStats.maxHp) * 100); const ePct = Math.max(0, (Game.battle.enemyHp / Game.battle.enemy.maxHp) * 100); document.getElementById('player-hp-bar').style.width = `${pPct}%`; document.getElementById('enemy-hp-bar').style.width = `${ePct}%`; document.getElementById('player-hp-text').innerText = `${Math.max(0, Game.battle.playerHp)}/${Game.playerStats.maxHp}`; document.getElementById('enemy-hp-text').innerText = `${Math.max(0, Game.battle.enemyHp)}/${Game.battle.enemy.maxHp}`; document.getElementById('battle-log-header').innerText = `Turn ${Game.battle.turn}`; }
+        
+        function endBattle(win) {
+            Game.battle.active = false;
+            const log = document.getElementById('battle-log');
+            if (win) {
+                const enemy = Game.battle.enemy;
+                const gold = enemy.goldReward;
+                Game.gold += gold;
+                updateGoldUI();
+                let rewardText = `<br><span class="text-green-400 font-bold">VICTORY!</span><br>Gained ${gold}g`;
+                
+                const isBoss = enemy.name === "Dungeon Boss";
+                const dropChance = isBoss ? 1.0 : 0.3; 
+                
+                if (Math.random() < dropChance) {
+                    const loot = generateLoot(enemy.level, isBoss);
+                    if (loot) {
+                        Game.weapons.push(loot);
+                        let rarityColor = "text-gray-400";
+                        if (loot.quality >= 9) rarityColor = "text-yellow-500 font-bold drop-shadow-md";
+                        else if (loot.quality >= 7) rarityColor = "text-purple-400 font-bold";
+                        else if (loot.quality >= 5) rarityColor = "text-blue-400";
+                        rewardText += `<br>Looted: <span class="${rarityColor}">${loot.name}</span>`;
+                    }
+                } else {
+                    const matKeys = Object.keys(MATERIALS_DB);
+                    if (Math.random() > 0.5) {
+                        const mat = matKeys[Math.floor(Math.random() * matKeys.length)];
+                        if(!Game.materials[mat]) Game.materials[mat]=0;
+                        Game.materials[mat]++;
+                        rewardText += ` and 1 ${MATERIALS_DB[mat].name}`;
+                    }
+                }
+                log.innerHTML += `<div class="mt-2 text-center text-lg">${rewardText}</div>`;
+                const idx = Game.opponents.indexOf(Game.battle.enemy);
+                if (idx > -1) { Game.opponents.splice(idx, 1); renderArena(); }
+            } else { log.innerHTML += `<br><div class="text-red-500 font-bold text-lg mt-2 text-center">DEFEAT</div>`; }
+            document.getElementById('battle-controls').classList.remove('hidden');
+        }
+
+        function generateLoot(level, isBoss) {
+            let allowedTiers = [];
+            if (isBoss) { allowedTiers = ['common', 'uncommon', 'rare', 'epic', 'legendary']; } 
+            else { allowedTiers = ['common', 'uncommon']; }
+            
+            const tier = allowedTiers[Math.floor(Math.random() * allowedTiers.length)];
+            const validMats = Object.keys(MATERIALS_DB).filter(k => MATERIALS_DB[k].rarity === tier);
+            const matKey = validMats.length > 0 ? validMats[Math.floor(Math.random() * validMats.length)] : 'stone';
+            const matData = MATERIALS_DB[matKey];
+            const itemKeys = Object.keys(ITEM_DB);
+            const baseItemKey = itemKeys[Math.floor(Math.random() * itemKeys.length)];
+            const baseItem = ITEM_DB[baseItemKey];
+            
+            const minQ = isBoss ? 6 : 1;
+            const maxQ = isBoss ? 10 : 5;
+            const quality = Math.floor(Math.random() * (maxQ - minQ + 1)) + minQ;
+            
+            const prefixes = PREFIXES[Object.keys(PREFIXES).reverse().find(k => quality >= k)] || PREFIXES[0];
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+            const itemName = `${prefix} ${matData.name.split(' ')[0]} ${baseItemKey}`;
+            const qualityMult = 0.5 + (quality / 10);
+            
+            const finalVal = Math.floor(baseItem.base * matData.mult * qualityMult * (isBoss ? 1.0 : 0.7));
+            const goldValue = Math.floor(finalVal * 5);
+            return { id: Date.now() + Math.random(), name: itemName, quality: quality, damage: finalVal, value: goldValue, type: baseItem.type, baseItem: baseItemKey };
+        }
+
+        function closeBattle() { document.getElementById('battle-view').classList.add('hidden'); document.getElementById('battle-view').classList.remove('flex'); renderInventory(); }
+    </script>
+</body>
+</html>
