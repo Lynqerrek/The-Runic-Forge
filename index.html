@@ -14,6 +14,7 @@
             background-color: #1a1a1a;
             color: #e5e5e5;
             overflow-x: hidden;
+            user-select: none;
         }
 
         h1, h2, h3, .fantasy-font {
@@ -140,6 +141,68 @@
             50% { text-shadow: 0 0 15px #facc15; }
             100% { text-shadow: 0 0 5px #ca8a04; }
         }
+
+        /* CASE OPENING STYLES */
+        .case-window {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 200px;
+            background: #000;
+            border: 4px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        }
+        
+        .case-track {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            position: absolute;
+            left: 50%; 
+            /* Start centered, will be animated */
+            will-change: transform;
+        }
+
+        .case-item-card {
+            width: 140px;
+            height: 160px;
+            flex-shrink: 0;
+            margin: 0 4px;
+            background: #1f1f1f;
+            border-bottom: 4px solid #555;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .cursor-line {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: #facc15;
+            z-index: 20;
+            box-shadow: 0 0 10px #facc15;
+        }
+
+        .case-shadow-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -163,6 +226,9 @@
                 </button>
                 <button onclick="switchTab('forging')" id="tab-forging" class="btn-tab px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
                     <i class="fas fa-fire mr-2"></i> Forge
+                </button>
+                 <button onclick="switchTab('cases')" id="tab-cases" class="btn-tab px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
+                    <i class="fas fa-box mr-2"></i> Cases
                 </button>
                 <button onclick="switchTab('inventory')" id="tab-inventory" class="btn-tab px-3 md:px-6 py-2 font-bold uppercase tracking-wide rounded-t hover:bg-neutral-800">
                     <i class="fas fa-box-open mr-2"></i> Bag
@@ -212,7 +278,7 @@
                 </div>
 
                 <div class="mt-12 text-center text-neutral-500 text-sm">
-                    <p>Click or Tap to Mine • 3 Hits to Break</p>
+                    <p>Click or Tap to Mine • 10 Hits to Break</p>
                 </div>
             </div>
 
@@ -315,6 +381,90 @@
                 </div>
 
             </div>
+
+             <!-- Cases Tab (NEW) -->
+             <div id="content-cases" class="w-full h-full hidden flex flex-col items-center p-6 overflow-hidden relative">
+                 
+                 <!-- Header -->
+                <div class="text-center mb-6">
+                    <h2 class="text-4xl font-bold fantasy-font text-amber-500 mb-2">Mystery Vaults</h2>
+                    <p class="text-amber-200/60">Spend your gold to uncover rare artifacts.</p>
+                </div>
+
+                <!-- Case Selection (Default View) -->
+                <div id="cases-selection" class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                    
+                    <!-- Ore Case -->
+                    <div class="bg-neutral-900 border border-neutral-700 p-6 rounded-lg flex flex-col items-center shadow-lg hover:border-blue-500 transition-all hover:scale-105 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-blue-900/10 group-hover:bg-blue-900/20 transition-colors pointer-events-none"></div>
+                        <div class="w-32 h-32 bg-neutral-800 rounded-full flex items-center justify-center mb-4 border-2 border-blue-900 relative z-10 shadow-[0_0_20px_rgba(30,58,138,0.5)]">
+                            <i class="fas fa-gem text-5xl text-blue-400"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-blue-100 mb-1 relative z-10">Ore Cache</h3>
+                        <p class="text-xs text-blue-300/70 mb-4 text-center relative z-10 h-8">Contains raw materials. Chance for Gold, Mithril, and Runite.</p>
+                        
+                        <div class="mt-auto w-full relative z-10">
+                            <button onclick="openCase('ore', event)" class="w-full py-3 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded border border-blue-700 transition-colors flex items-center justify-center gap-2 relative z-20 cursor-pointer">
+                                <i class="fas fa-key"></i> Open (350g)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Weapon Case -->
+                    <div class="bg-neutral-900 border border-neutral-700 p-6 rounded-lg flex flex-col items-center shadow-lg hover:border-red-500 transition-all hover:scale-105 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-red-900/10 group-hover:bg-red-900/20 transition-colors pointer-events-none"></div>
+                         <div class="w-32 h-32 bg-neutral-800 rounded-full flex items-center justify-center mb-4 border-2 border-red-900 relative z-10 shadow-[0_0_20px_rgba(127,29,29,0.5)]">
+                            <i class="fas fa-khanda text-5xl text-red-400"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-red-100 mb-1 relative z-10">Warrior's Chest</h3>
+                        <p class="text-xs text-red-300/70 mb-4 text-center relative z-10 h-8">Contains weapons. High chance of junk, low chance of Legendary gear.</p>
+                        
+                        <div class="mt-auto w-full relative z-10">
+                            <button onclick="openCase('weapon', event)" class="w-full py-3 bg-red-900 hover:bg-red-800 text-white font-bold rounded border border-red-700 transition-colors flex items-center justify-center gap-2 relative z-20 cursor-pointer">
+                                <i class="fas fa-key"></i> Open (425g)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Armor Case -->
+                    <div class="bg-neutral-900 border border-neutral-700 p-6 rounded-lg flex flex-col items-center shadow-lg hover:border-purple-500 transition-all hover:scale-105 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-purple-900/10 group-hover:bg-purple-900/20 transition-colors pointer-events-none"></div>
+                         <div class="w-32 h-32 bg-neutral-800 rounded-full flex items-center justify-center mb-4 border-2 border-purple-900 relative z-10 shadow-[0_0_20px_rgba(88,28,135,0.5)]">
+                            <i class="fas fa-shield-alt text-5xl text-purple-400"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-purple-100 mb-1 relative z-10">Armorer's Strongbox</h3>
+                        <p class="text-xs text-purple-300/70 mb-4 text-center relative z-10 h-8">Contains armor pieces. Protect yourself with rare defensive gear.</p>
+                        
+                        <div class="mt-auto w-full relative z-10">
+                            <button onclick="openCase('armor', event)" class="w-full py-3 bg-purple-900 hover:bg-purple-800 text-white font-bold rounded border border-purple-700 transition-colors flex items-center justify-center gap-2 relative z-20 cursor-pointer">
+                                <i class="fas fa-key"></i> Open (425g)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opening Animation (Hidden initially) -->
+                <div id="case-opener-view" class="hidden flex-col items-center justify-center w-full h-full absolute inset-0 bg-black/95 z-50 p-4">
+                    <h3 class="text-2xl font-bold text-white mb-8" id="opening-title">Opening...</h3>
+                    
+                    <div class="case-window mb-8">
+                        <div class="cursor-line"></div>
+                        <div class="case-shadow-overlay"></div>
+                        <div class="case-track" id="case-track">
+                            <!-- Items populated by JS -->
+                        </div>
+                    </div>
+
+                    <div id="case-result-message" class="text-xl font-bold text-amber-500 opacity-0 transition-opacity">
+                        <!-- Result text -->
+                    </div>
+
+                    <button id="btn-collect-case" onclick="resetCaseView()" class="hidden mt-8 px-8 py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded shadow-lg animate-bounce">
+                        Collect Reward
+                    </button>
+                </div>
+            </div>
+
 
              <!-- Inventory Tab -->
             <div id="content-inventory" class="w-full h-full hidden flex flex-col p-6 gap-6 overflow-hidden">
@@ -544,7 +694,7 @@
     <script>
         // --- GAME STATE ---
         const Game = {
-            gold: 0,
+            gold: 50, // Reduced starting gold to reflect harder economy
             materials: {}, 
             weapons: [],
             equipped: { weapon: null, helmet: null, chestplate: null, leggings: null }, 
@@ -553,8 +703,8 @@
             customers: [],
             opponents: [], 
             shopSelection: null, 
-            rockHP: 3,
-            maxRockHP: 3,
+            rockHP: 10,
+            maxRockHP: 10,
             lastMineTime: 0, 
             isForging: false,
             forgeState: {
@@ -578,6 +728,10 @@
                 enemyHp: 0,
                 enemy: null,
                 timer: null
+            },
+            case: {
+                isOpening: false,
+                pendingReward: null
             }
         };
 
@@ -653,6 +807,12 @@
             9: ['Masterwork', 'Legendary', 'Godly']
         };
 
+        const CASE_CONFIG = {
+            ore: { price: 350 },
+            weapon: { price: 425 },
+            armor: { price: 425 }
+        };
+
         // --- GLOBAL CANVAS VARS ---
         let canvas, ctx, centerX, centerY, radius;
 
@@ -686,12 +846,26 @@
         function switchTab(tabId) {
             if (Game.isForging) { if(!confirm("Leave the forge? Progress will be lost.")) return; stopForging(); }
             if (Game.battle.active) { if(!confirm("Leave the battle? You will forfeit.")) return; closeBattle(); }
+            if (Game.case.isOpening) { alert("Cannot leave while opening a case!"); return; }
+            
             document.querySelectorAll('.btn-tab').forEach(b => { b.classList.remove('active'); b.style.borderBottom = '3px solid transparent'; b.style.color = '#e5e5e5'; b.style.backgroundColor = 'transparent'; });
             const activeBtn = document.getElementById(`tab-${tabId}`);
             activeBtn.classList.add('active'); activeBtn.style.borderBottom = '3px solid #f59e0b'; activeBtn.style.color = '#f59e0b'; activeBtn.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
-            document.getElementById('content-mining').classList.add('hidden'); document.getElementById('content-forging').classList.add('hidden'); document.getElementById('content-shop').classList.add('hidden'); document.getElementById('content-inventory').classList.add('hidden'); document.getElementById('content-fight').classList.add('hidden');
+            
+            document.getElementById('content-mining').classList.add('hidden'); 
+            document.getElementById('content-forging').classList.add('hidden'); 
+            document.getElementById('content-shop').classList.add('hidden'); 
+            document.getElementById('content-inventory').classList.add('hidden'); 
+            document.getElementById('content-fight').classList.add('hidden');
+            document.getElementById('content-cases').classList.add('hidden');
+            
             document.getElementById(`content-${tabId}`).classList.remove('hidden');
-            if (tabId === 'forging') updateForgeUI(); if (tabId === 'shop') renderShop(); if (tabId === 'inventory') { renderInventory(); renderEquipment(); } if (tabId === 'fight') renderArena();
+            
+            if (tabId === 'forging') updateForgeUI(); 
+            if (tabId === 'shop') renderShop(); 
+            if (tabId === 'inventory') { renderInventory(); renderEquipment(); } 
+            if (tabId === 'fight') renderArena();
+            if (tabId === 'cases') resetCaseView();
         }
 
         // --- EQUIPMENT & INVENTORY ---
@@ -708,9 +882,9 @@
         // --- MINING ---
         function hitRock(event) {
             const now = Date.now();
-            if (now - (Game.lastMineTime || 0) < 100) return; 
+            if (now - (Game.lastMineTime || 0) < 50) return; // 50ms cooldown
             Game.lastMineTime = now;
-            const rock = document.getElementById('rock-element'); const hpBar = document.getElementById('rock-hp-bar'); rock.classList.remove('shake-anim'); void rock.offsetWidth; rock.classList.add('shake-anim'); const rect = rock.getBoundingClientRect(); const x = event.clientX || (rect.left + rect.width/2); const y = event.clientY || (rect.top + rect.height/2); spawnFloatingText(x, y, "CLANG!"); Game.rockHP--; if (Game.rockHP === 2) document.getElementById('rock-crack-1').classList.remove('hidden'); if (Game.rockHP === 1) document.getElementById('rock-crack-2').classList.remove('hidden'); const percent = (Game.rockHP / Game.maxRockHP) * 100; hpBar.style.width = `${percent}%`; if (Game.rockHP <= 0) breakRock(rect); 
+            const rock = document.getElementById('rock-element'); const hpBar = document.getElementById('rock-hp-bar'); rock.classList.remove('shake-anim'); void rock.offsetWidth; rock.classList.add('shake-anim'); const rect = rock.getBoundingClientRect(); const x = event.clientX || (rect.left + rect.width/2); const y = event.clientY || (rect.top + rect.height/2); spawnFloatingText(x, y, "CLANG!"); Game.rockHP--; if (Game.rockHP <= 7) document.getElementById('rock-crack-1').classList.remove('hidden'); if (Game.rockHP <= 3) document.getElementById('rock-crack-2').classList.remove('hidden'); const percent = (Game.rockHP / Game.maxRockHP) * 100; hpBar.style.width = `${percent}%`; if (Game.rockHP <= 0) breakRock(rect); 
         }
         function breakRock(rect) { let totalWeight = 0; for (const key in MATERIALS_DB) totalWeight += MATERIALS_DB[key].weight; let randomNum = Math.random() * totalWeight; let droppedMaterial = 'stone'; for (const key in MATERIALS_DB) { randomNum -= MATERIALS_DB[key].weight; if (randomNum <= 0) { droppedMaterial = key; break; } } if (!Game.materials[droppedMaterial]) Game.materials[droppedMaterial] = 0; Game.materials[droppedMaterial]++; spawnFloatingText(rect.left + rect.width/2, rect.top, `+1 ${MATERIALS_DB[droppedMaterial].name}`, MATERIALS_DB[droppedMaterial].color); Game.rockHP = Game.maxRockHP; document.getElementById('rock-hp-bar').style.width = '100%'; setTimeout(() => { document.getElementById('rock-crack-1').classList.add('hidden'); document.getElementById('rock-crack-2').classList.add('hidden'); }, 200); }
         function spawnFloatingText(x, y, text, color = '#ffffff') { const el = document.createElement('div'); el.className = 'floating-text'; el.innerText = text; el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.color = color; document.body.appendChild(el); setTimeout(() => el.remove(), 1000); }
@@ -729,7 +903,69 @@
         function setupCanvasInput() { document.addEventListener('keydown', (e) => { if (e.code === 'Space' && Game.isForging && Game.forgeState.roundActive) { e.preventDefault(); handleInput(); } }); canvas.addEventListener('mousedown', (e) => { if(Game.isForging && Game.forgeState.roundActive) handleInput(); }); }
         function handleInput() { if (!Game.forgeState.roundActive) return; Game.forgeState.roundActive = false; const current = Game.forgeState.needleAngle % (2 * Math.PI); const goodStart = Game.forgeState.zoneStart; const goodWidth = Game.forgeState.zoneWidth; const perfWidth = Game.forgeState.perfectWidth; const perfStart = goodStart + (goodWidth - perfWidth) / 2; const checkCollision = (angle, start, width) => { let a = angle % (2 * Math.PI); let s = start % (2 * Math.PI); let e = (start + width) % (2 * Math.PI); if (s < e) return a >= s && a <= e; return a >= s || a <= e; }; let resultType = 0; let points = 0; if (checkCollision(current, perfStart, perfWidth)) { resultType = 2; points = 1; } else if (checkCollision(current, goodStart, goodWidth)) { resultType = 1; points = 0.5; } else { Game.forgeState.speedMod *= 0.65; } showFeedback(resultType); if (points > 0) Game.forgeState.hits += points; setTimeout(() => { Game.forgeState.currentCheck++; updateMinigameUI(); if (Game.forgeState.currentCheck > Game.forgeState.maxChecks) finishForging(); else startSkillCheckRound(); }, 500); }
         function showFeedback(resultType) { const fb = document.getElementById('feedback-text'); if (resultType === 2) { fb.innerText = "PERFECT!"; fb.style.color = "#ffffff"; fb.style.textShadow = "0 0 15px #22c55e"; } else if (resultType === 1) { fb.innerText = "GOOD"; fb.style.color = "#f59e0b"; fb.style.textShadow = "0 0 10px black"; } else { fb.innerText = "MISS"; fb.style.color = "#ef4444"; fb.style.textShadow = "0 0 10px black"; } fb.style.animation = 'none'; fb.offsetHeight; fb.style.animation = 'floatText 0.5s ease-out forwards'; }
-        function finishForging() { Game.isForging = false; document.getElementById('forge-minigame').classList.add('hidden'); document.getElementById('forge-minigame').classList.remove('flex'); const score = Game.forgeState.hits; const mass = Game.forgeState.crucible.length; let tier = 'light'; if (mass >= 4) tier = 'medium'; if (mass >= 8) tier = 'heavy'; const availableItems = Object.keys(ITEM_DB).filter(k => { const item = ITEM_DB[k]; if (tier === 'light') return item.weight === 'light'; if (tier === 'medium') return item.weight === 'medium' || item.weight === 'light'; if (tier === 'heavy') return item.weight === 'heavy' || item.weight === 'medium'; return false; }); const itemKey = availableItems[Math.floor(Math.random() * availableItems.length)]; const itemBase = ITEM_DB[itemKey]; let totalMult = 0; Game.forgeState.crucible.forEach(k => totalMult += MATERIALS_DB[k].mult); let avgMult = totalMult / mass; avgMult *= (1 + (mass * 0.05)); let qualityTier = 0; let qualityText = "Common"; let qualityColor = "text-gray-400"; if (score <= 3) { qualityText = "Poor"; qualityColor = "text-stone-500"; } else if (score <= 5.5) { qualityTier = 3; qualityText = "Common"; qualityColor = "text-gray-400"; } else if (score <= 7.5) { qualityTier = 5; qualityText = "Rare"; qualityColor = "text-blue-400"; } else if (score <= 9) { qualityTier = 7; qualityText = "Epic"; qualityColor = "text-purple-400"; } else { qualityTier = 9; qualityText = "Legendary"; qualityColor = "text-yellow-500"; } const prefixes = PREFIXES[Object.keys(PREFIXES).reverse().find(k => score >= k)]; const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]; const counts = {}; let domMat = Game.forgeState.crucible[0]; let maxCount = 0; Game.forgeState.crucible.forEach(k => { counts[k] = (counts[k] || 0) + 1; if (counts[k] > maxCount) { maxCount = counts[k]; domMat = k; } }); const matName = MATERIALS_DB[domMat].name.split(' ')[0]; const itemName = `${prefix} ${matName} ${itemKey}`; const qualityMult = 0.5 + (score / 10); const finalVal = Math.floor(itemBase.base * avgMult * qualityMult); const goldValue = Math.floor(finalVal * 5); const newItem = { id: Date.now(), name: itemName, quality: score, damage: finalVal, value: goldValue, type: itemBase.type, baseItem: itemKey }; Game.weapons.push(newItem); Game.forgeState.crucible = []; const modal = document.getElementById('forge-result'); modal.classList.remove('hidden'); modal.classList.add('flex'); document.getElementById('result-icon').className = `fas ${itemBase.icon} text-6xl text-amber-500 mb-4 block relative z-10`; document.getElementById('result-weapon-name').innerText = itemName; const qEl = document.getElementById('result-weapon-quality'); qEl.innerText = qualityText + " Quality"; qEl.className = "text-sm font-bold uppercase tracking-widest mt-1 relative z-10 " + qualityColor; document.getElementById('result-type').innerText = itemBase.type + " (" + itemBase.weight + ")"; document.getElementById('result-damage').innerText = finalVal; document.getElementById('result-damage').className = itemBase.type === 'Weapon' ? 'text-red-400' : 'text-blue-400'; document.getElementById('result-value').innerText = goldValue + "g"; document.getElementById('result-score').innerText = score + "/10"; }
+        
+        function finishForging() { 
+            Game.isForging = false; 
+            document.getElementById('forge-minigame').classList.add('hidden'); 
+            document.getElementById('forge-minigame').classList.remove('flex'); 
+            const score = Game.forgeState.hits; 
+            const mass = Game.forgeState.crucible.length; 
+            let tier = 'light'; 
+            if (mass >= 4) tier = 'medium'; 
+            if (mass >= 8) tier = 'heavy'; 
+            const availableItems = Object.keys(ITEM_DB).filter(k => { 
+                const item = ITEM_DB[k]; 
+                if (tier === 'light') return item.weight === 'light'; 
+                if (tier === 'medium') return item.weight === 'medium' || item.weight === 'light'; 
+                if (tier === 'heavy') return item.weight === 'heavy' || item.weight === 'medium'; 
+                return false; 
+            }); 
+            const itemKey = availableItems[Math.floor(Math.random() * availableItems.length)]; 
+            const itemBase = ITEM_DB[itemKey]; 
+            let totalMult = 0; 
+            Game.forgeState.crucible.forEach(k => totalMult += MATERIALS_DB[k].mult); 
+            let avgMult = totalMult / mass; 
+            avgMult *= (1 + (mass * 0.05)); 
+            let qualityTier = 0; 
+            let qualityText = "Common"; 
+            let qualityColor = "text-gray-400"; 
+            if (score <= 3) { qualityText = "Poor"; qualityColor = "text-stone-500"; } 
+            else if (score <= 5.5) { qualityTier = 3; qualityText = "Common"; qualityColor = "text-gray-400"; } 
+            else if (score <= 7.5) { qualityTier = 5; qualityText = "Rare"; qualityColor = "text-blue-400"; } 
+            else if (score <= 9) { qualityTier = 7; qualityText = "Epic"; qualityColor = "text-purple-400"; } 
+            else { qualityTier = 9; qualityText = "Legendary"; qualityColor = "text-yellow-500"; } 
+            const prefixes = PREFIXES[Object.keys(PREFIXES).reverse().find(k => score >= k)]; 
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]; 
+            const counts = {}; 
+            let domMat = Game.forgeState.crucible[0]; 
+            let maxCount = 0; 
+            Game.forgeState.crucible.forEach(k => { counts[k] = (counts[k] || 0) + 1; if (counts[k] > maxCount) { maxCount = counts[k]; domMat = k; } }); 
+            const matName = MATERIALS_DB[domMat].name.split(' ')[0]; 
+            const itemName = `${prefix} ${matName} ${itemKey}`; 
+            const qualityMult = 0.5 + (score / 10); 
+            const finalVal = Math.floor(itemBase.base * avgMult * qualityMult); 
+            
+            // --- ECONOMY CHANGE: Reduced multiplier from 5 to 2 to make earning harder ---
+            const goldValue = Math.floor(finalVal * 2); 
+            
+            const newItem = { id: Date.now(), name: itemName, quality: score, damage: finalVal, value: goldValue, type: itemBase.type, baseItem: itemKey }; 
+            Game.weapons.push(newItem); 
+            Game.forgeState.crucible = []; 
+            const modal = document.getElementById('forge-result'); 
+            modal.classList.remove('hidden'); 
+            modal.classList.add('flex'); 
+            document.getElementById('result-icon').className = `fas ${itemBase.icon} text-6xl text-amber-500 mb-4 block relative z-10`; 
+            document.getElementById('result-weapon-name').innerText = itemName; 
+            const qEl = document.getElementById('result-weapon-quality'); 
+            qEl.innerText = qualityText + " Quality"; 
+            qEl.className = "text-sm font-bold uppercase tracking-widest mt-1 relative z-10 " + qualityColor; 
+            document.getElementById('result-type').innerText = itemBase.type + " (" + itemBase.weight + ")"; 
+            document.getElementById('result-damage').innerText = finalVal; 
+            document.getElementById('result-damage').className = itemBase.type === 'Weapon' ? 'text-red-400' : 'text-blue-400'; 
+            document.getElementById('result-value').innerText = goldValue + "g"; 
+            document.getElementById('result-score').innerText = score + "/10"; 
+        }
+        
         function closeResult() { document.getElementById('forge-result').classList.add('hidden'); document.getElementById('forge-result').classList.remove('flex'); updateForgeUI(); document.getElementById('forge-setup').classList.remove('hidden'); switchTab('inventory'); }
 
         // --- SHOP & ECONOMY ---
@@ -742,19 +978,33 @@
             const toAdd = force ? 1 : needed;
             const names = ["Bjorn", "Ragnar", "Lagertha", "Rollo", "Floki", "Astrid", "Torvi", "Ivar", "Ubbe", "Hvitserk"];
             const titles = ["the Strong", "the Swift", "Ironside", "the Boneless", "Shield-Maiden", "the Builder", "Lothbrok"];
+            
             const requests = [
-                { type: "Weapon", label: "Any Weapon", bonus: 1.2 }, { type: "Armor", label: "Any Armor", bonus: 1.2 },
-                { type: "heavy", label: "Heavy Gear", bonus: 1.3 }, { type: "light", label: "Light Gear", bonus: 1.3 },
-                { key: "Sword", label: "A Sword", bonus: 1.5 }, { key: "Greatsword", label: "A Greatsword", bonus: 1.6 },
-                { key: "Plate Armor", label: "Plate Armor", bonus: 1.6 }, { key: "Helmet", label: "A Helmet", bonus: 1.4 },
-                { key: "Leggings", label: "Leggings", bonus: 1.4 }, { key: "Dragonstone", label: "Dragon Item", bonus: 2.0 }
+                { type: "Weapon", label: "Any Weapon" }, 
+                { type: "Armor", label: "Any Armor" },
+                { type: "heavy", label: "Heavy Gear" }, 
+                { type: "light", label: "Light Gear" },
+                { key: "Sword", label: "A Sword" }, 
+                { key: "Greatsword", label: "A Greatsword" },
+                { key: "Plate Armor", label: "Plate Armor" }, 
+                { key: "Helmet", label: "A Helmet" },
+                { key: "Leggings", label: "Leggings" }, 
+                { key: "Dragonstone", label: "Dragon Item" }
             ];
             for(let i=0; i<toAdd; i++) {
                 if (Game.customers.length >= 3) break;
                 const name = names[Math.floor(Math.random() * names.length)];
                 const title = titles[Math.floor(Math.random() * titles.length)];
                 const req = requests[Math.floor(Math.random() * requests.length)];
-                Game.customers.push({ name: `${name} ${title}`, request: req, id: Date.now() + Math.random() });
+                
+                // --- ECONOMY CHANGE: Random bonus between 0.78 and 1.10 (78% - 110%) ---
+                const randomBonus = 0.78 + (Math.random() * (1.10 - 0.78));
+                
+                Game.customers.push({ 
+                    name: `${name} ${title}`, 
+                    request: { ...req, bonus: randomBonus }, 
+                    id: Date.now() + Math.random() 
+                });
             }
             if(!document.getElementById('content-shop').classList.contains('hidden')) renderShop();
         }
@@ -837,6 +1087,253 @@
         function sellToWarrior(customerIndex) { if (Game.shopSelection === null) return; const item = Game.weapons[Game.shopSelection]; const customer = Game.customers[customerIndex]; const price = Math.floor(item.value * customer.request.bonus); performSale(price, customer.name); Game.customers.splice(customerIndex, 1); }
         function performSale(amount, buyerName) { Game.gold += amount; updateGoldUI(); const btn = document.getElementById('tab-shop'); const rect = btn.getBoundingClientRect(); spawnFloatingText(rect.left + 20, rect.top + 50, `+${amount}g`, '#facc15'); const soldItem = Game.weapons[Game.shopSelection]; if (Game.equipped.weapon === soldItem.id) Game.equipped.weapon = null; if (Game.equipped.helmet === soldItem.id) Game.equipped.helmet = null; if (Game.equipped.chestplate === soldItem.id) Game.equipped.chestplate = null; if (Game.equipped.leggings === soldItem.id) Game.equipped.leggings = null; Game.weapons.splice(Game.shopSelection, 1); Game.shopSelection = null; renderShop(); const goldDisplay = document.getElementById('gold-display'); goldDisplay.classList.add('gold-shine'); setTimeout(() => goldDisplay.classList.remove('gold-shine'), 500); }
 
+        // --- CASE OPENING ---
+        function resetCaseView() {
+            document.getElementById('cases-selection').classList.remove('hidden');
+            document.getElementById('case-opener-view').classList.add('hidden');
+            document.getElementById('case-opener-view').classList.remove('flex');
+            document.getElementById('btn-collect-case').classList.add('hidden');
+            document.getElementById('case-result-message').style.opacity = 0;
+            Game.case.isOpening = false;
+        }
+
+        function openCase(type, event) {
+            console.log("Attempting to open case:", type); // DEBUG LOG
+            const config = CASE_CONFIG[type];
+            if (Game.gold < config.price) {
+                // Find button coordinates if event is provided
+                if(event && event.target) {
+                     // Check if event.target is the button or the icon inside
+                     let target = event.target;
+                     if(target.tagName !== 'BUTTON') target = target.closest('button');
+                     
+                     if(target) {
+                        const rect = target.getBoundingClientRect();
+                        spawnFloatingText(rect.left + rect.width/2, rect.top, "Not Enough Gold!", "#ef4444");
+                     } else {
+                        // Fallback
+                        spawnFloatingText(event.clientX, event.clientY, "Not Enough Gold!", "#ef4444");
+                     }
+                }
+                return;
+            }
+            
+            Game.gold -= config.price;
+            updateGoldUI();
+
+            Game.case.isOpening = true;
+            document.getElementById('cases-selection').classList.add('hidden');
+            const view = document.getElementById('case-opener-view');
+            view.classList.remove('hidden');
+            view.classList.add('flex');
+            document.getElementById('opening-title').innerText = `Unlocking ${type.charAt(0).toUpperCase() + type.slice(1)} Vault...`;
+
+            // Prepare Items
+            const items = [];
+            const trackLength = 50; 
+            const winnerIndex = 40; 
+            
+            // Generate Winner
+            const winner = generateCaseLoot(type);
+            Game.case.pendingReward = winner;
+
+            // Generate Filler
+            for(let i=0; i < trackLength; i++) {
+                if(i === winnerIndex) {
+                    items.push(winner);
+                } else {
+                    items.push(generateCaseLoot(type, true)); // true = isFiller
+                }
+            }
+
+            renderCaseTrack(items);
+            
+            // Animate
+            setTimeout(() => {
+                const track = document.getElementById('case-track');
+                const cardWidth = 148; // 140 width + 8 margin
+                const centerOffset = (document.querySelector('.case-window').offsetWidth / 2) - (140 / 2); // Center of window minus half card width
+                
+                // Randomize land position slightly within the card (center +- 20px)
+                const jitter = (Math.random() * 40) - 20; 
+                
+                const position = -((winnerIndex * cardWidth) - centerOffset + jitter);
+                
+                track.style.transition = 'transform 5s cubic-bezier(0.1, 0, 0.2, 1)'; // CSGO ease out
+                track.style.transform = `translateX(${position}px)`;
+
+                setTimeout(() => {
+                    revealCaseResult(winner);
+                }, 5000);
+            }, 100);
+        }
+
+        function generateCaseLoot(type, isFiller = false) {
+            // Simplified loot generation logic based on type
+            let item = {};
+            const rand = Math.random();
+
+            if (type === 'ore') {
+                // Ore Case Logic
+                // REBALANCED: 65% Junk/Common Chance
+                const rarityRoll = Math.random();
+                let chosenRarity = 'common';
+                
+                if (rarityRoll > 0.99) chosenRarity = 'legendary'; // 1%
+                else if (rarityRoll > 0.95) chosenRarity = 'epic'; // 4%
+                else if (rarityRoll > 0.85) chosenRarity = 'rare'; // 10%
+                else if (rarityRoll > 0.65) chosenRarity = 'uncommon'; // 20%
+                // Common is 65% (0.0 to 0.65)
+
+                // Force junk for fillers sometimes to balance visuals
+                if(isFiller && Math.random() > 0.5) chosenRarity = 'common';
+
+                const possible = Object.keys(MATERIALS_DB).filter(k => MATERIALS_DB[k].rarity === chosenRarity);
+                const key = possible.length ? possible[Math.floor(Math.random() * possible.length)] : 'stone';
+                const mat = MATERIALS_DB[key];
+                
+                return {
+                    isMaterial: true,
+                    key: key,
+                    name: mat.name,
+                    rarity: mat.rarity,
+                    icon: mat.icon,
+                    color: mat.color,
+                    value: Math.floor(mat.mult * 50) // Arbitrary value calc
+                };
+            } else {
+                // Weapon/Armor Case Logic
+                const isWeapon = type === 'weapon';
+                const targetType = isWeapon ? 'Weapon' : 'Armor'; // Armor is generic for Helmet/Chest/Legs
+                
+                // Rarity determines quality score
+                let quality = 0;
+                const r = Math.random();
+                
+                // REBALANCED: 65% Junk/Common Chance
+                if (r > 0.99) quality = 10; // Legendary (1% chance)
+                else if (r > 0.95) quality = 8; // Epic (4% chance)
+                else if (r > 0.85) quality = 6; // Rare (10% chance)
+                else if (r > 0.65) quality = 4; // Uncommon (20% chance)
+                else quality = 2; // Common/Junk (65% chance)
+
+                // "Junk" items are worth less than case price (400g)
+                // "Good" items worth more
+                
+                const validKeys = Object.keys(ITEM_DB).filter(k => {
+                    if (isWeapon) return ITEM_DB[k].type === 'Weapon';
+                    return ITEM_DB[k].type !== 'Weapon';
+                });
+                
+                const baseKey = validKeys[Math.floor(Math.random() * validKeys.length)];
+                const baseItem = ITEM_DB[baseKey];
+                
+                // If quality is low, use bad prefixes
+                let pList = PREFIXES[0];
+                if (quality >= 9) pList = PREFIXES[9];
+                else if (quality >= 7) pList = PREFIXES[7];
+                else if (quality >= 5) pList = PREFIXES[5];
+                else if (quality >= 3) pList = PREFIXES[3];
+
+                const prefix = pList[Math.floor(Math.random() * pList.length)];
+                
+                // Determine material based on quality roughly
+                let matName = "Iron";
+                if (quality <= 3) matName = "Rusty Iron";
+                if (quality >= 7) matName = "Mithril";
+                if (quality >= 9) matName = "Dragonstone";
+
+                const name = `${prefix} ${matName} ${baseKey}`;
+                
+                // Value calc
+                let val = baseItem.base * (quality + 1) * 10;
+                if (quality <= 3) val = 50; // Junk value
+
+                let rarityStr = 'common';
+                if (quality >= 9) rarityStr = 'legendary';
+                else if (quality >= 7) rarityStr = 'epic';
+                else if (quality >= 5) rarityStr = 'rare';
+                else if (quality >= 3) rarityStr = 'uncommon';
+
+                return {
+                    isMaterial: false,
+                    name: name,
+                    quality: quality,
+                    rarity: rarityStr,
+                    type: baseItem.type,
+                    damage: Math.floor(baseItem.base * (quality/2)),
+                    value: val,
+                    icon: baseItem.icon,
+                    baseItem: baseKey
+                };
+            }
+        }
+
+        function renderCaseTrack(items) {
+            const track = document.getElementById('case-track');
+            track.innerHTML = '';
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
+            
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `case-item-card border-b-4 ${getRarityBorder(item.rarity)}`;
+                
+                const iconColor = item.isMaterial ? item.color : getRarityColor(item.rarity);
+                
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-neutral-500 mb-2 uppercase">${item.rarity}</div>
+                    <i class="fas ${item.icon} text-4xl mb-2" style="color: ${iconColor}"></i>
+                    <div class="text-[10px] font-bold text-neutral-300 leading-tight px-1 line-clamp-2">${item.name}</div>
+                `;
+                track.appendChild(card);
+            });
+        }
+
+        function getRarityBorder(rarity) {
+            switch(rarity) {
+                case 'legendary': return 'border-yellow-500 bg-yellow-900/10';
+                case 'epic': return 'border-purple-500 bg-purple-900/10';
+                case 'rare': return 'border-blue-500 bg-blue-900/10';
+                case 'uncommon': return 'border-green-500 bg-green-900/10';
+                default: return 'border-neutral-600 bg-neutral-800';
+            }
+        }
+
+        function getRarityColor(rarity) {
+            switch(rarity) {
+                case 'legendary': return '#eab308';
+                case 'epic': return '#a855f7';
+                case 'rare': return '#3b82f6';
+                case 'uncommon': return '#22c55e';
+                default: return '#a3a3a3';
+            }
+        }
+
+        function revealCaseResult(item) {
+            const msg = document.getElementById('case-result-message');
+            msg.innerHTML = `Opened: <span style="color:${item.isMaterial ? item.color : getRarityColor(item.rarity)}">${item.name}</span><br><span class="text-sm text-neutral-400">Value: ${item.value}g</span>`;
+            msg.style.opacity = 1;
+            document.getElementById('btn-collect-case').classList.remove('hidden');
+
+            // Add to Inventory
+            if (item.isMaterial) {
+                if (!Game.materials[item.key]) Game.materials[item.key] = 0;
+                Game.materials[item.key]++;
+            } else {
+                Game.weapons.push({
+                    id: Date.now(),
+                    name: item.name,
+                    quality: item.quality,
+                    damage: item.damage,
+                    value: item.value,
+                    type: item.type,
+                    baseItem: item.baseItem
+                });
+            }
+        }
+
+
         // --- FIGHT SYSTEM ---
         function getMaxPlayerPower() {
             let maxAtk = 10;
@@ -862,7 +1359,9 @@
                 const hp = Math.max(100, Math.floor(pStats.maxHp * scale));
                 const atk = Math.max(5, Math.floor(pStats.atk * scale));
                 const def = Math.max(0, Math.floor(pStats.def * scale * 0.5));
-                Game.opponents.push({ name: names[Math.floor(Math.random() * names.length)], icon: icons[Math.floor(Math.random() * icons.length)], hp: hp, maxHp: hp, atk: atk, def: def, level: Math.floor(scale * 10) + 1, goldReward: Math.floor(scale * 100) + 20 });
+                // --- ECONOMY CHANGE: Added base gold reward back ---
+                const baseReward = Math.floor(scale * 100) + 50;
+                Game.opponents.push({ name: names[Math.floor(Math.random() * names.length)], icon: icons[Math.floor(Math.random() * icons.length)], hp: hp, maxHp: hp, atk: atk, def: def, level: Math.floor(scale * 10) + 1, goldReward: baseReward });
             }
             if (!document.getElementById('content-fight').classList.contains('hidden')) renderArena();
         }
@@ -874,7 +1373,8 @@
             const pStats = getMaxPlayerPower();
             if (type === 'dungeon') { 
                 const scale = 2.0 + (Math.random() * 2.0); 
-                enemy = { name: "Dungeon Boss", icon: "fa-dragon", hp: Math.max(500, Math.floor(pStats.maxHp * scale)), maxHp: Math.max(500, Math.floor(pStats.maxHp * scale)), atk: Math.max(20, Math.floor(pStats.atk * scale)), def: Math.max(10, Math.floor(pStats.def * scale)), goldReward: Math.floor(scale * 300), level: Math.floor(scale * 10) + 20 }; 
+                const baseReward = Math.floor(scale * 300);
+                enemy = { name: "Dungeon Boss", icon: "fa-dragon", hp: Math.max(500, Math.floor(pStats.maxHp * scale)), maxHp: Math.max(500, Math.floor(pStats.maxHp * scale)), atk: Math.max(20, Math.floor(pStats.atk * scale)), def: Math.max(10, Math.floor(pStats.def * scale)), goldReward: baseReward, level: Math.floor(scale * 10) + 20 }; 
             } else { 
                 enemy = {...Game.opponents[index]}; 
             } 
@@ -893,10 +1393,19 @@
             const log = document.getElementById('battle-log');
             if (win) {
                 const enemy = Game.battle.enemy;
-                const gold = enemy.goldReward;
-                Game.gold += gold;
+                
+                // --- ECONOMY CHANGE: Reward based on HP % ---
+                const hpPercent = Math.max(0, Game.battle.playerHp) / Game.playerStats.maxHp;
+                const actualGold = Math.floor(enemy.goldReward * hpPercent);
+                
+                Game.gold += actualGold;
                 updateGoldUI();
-                let rewardText = `<br><span class="text-green-400 font-bold">VICTORY!</span><br>Gained ${gold}g`;
+                
+                let rewardText = `<br><span class="text-green-400 font-bold">VICTORY!</span><br>Gained ${actualGold}g`;
+                
+                if (actualGold < enemy.goldReward) {
+                    rewardText += `<br><span class="text-[10px] text-red-400">(Lost ${enemy.goldReward - actualGold}g due to damage taken)</span>`;
+                }
                 
                 const isBoss = enemy.name === "Dungeon Boss";
                 const dropChance = isBoss ? 1.0 : 0.3; 
@@ -917,13 +1426,22 @@
                         const mat = matKeys[Math.floor(Math.random() * matKeys.length)];
                         if(!Game.materials[mat]) Game.materials[mat]=0;
                         Game.materials[mat]++;
-                        rewardText += ` and 1 ${MATERIALS_DB[mat].name}`;
+                        rewardText += `<br>Found: 1 ${MATERIALS_DB[mat].name}`;
                     }
                 }
                 log.innerHTML += `<div class="mt-2 text-center text-lg">${rewardText}</div>`;
                 const idx = Game.opponents.indexOf(Game.battle.enemy);
                 if (idx > -1) { Game.opponents.splice(idx, 1); renderArena(); }
-            } else { log.innerHTML += `<br><div class="text-red-500 font-bold text-lg mt-2 text-center">DEFEAT</div>`; }
+            } else { 
+                // --- ECONOMY CHANGE: Gold Loss on Defeat ---
+                const enemy = Game.battle.enemy;
+                const goldLoss = Math.floor(Game.gold * 0.10); // 10% loss
+                Game.gold = Math.max(0, Game.gold - goldLoss);
+                updateGoldUI();
+
+                log.innerHTML += `<br><div class="text-red-500 font-bold text-lg mt-2 text-center">DEFEAT</div>
+                                  <div class="text-xs text-neutral-500 text-center">You dropped <span class="text-red-400">${goldLoss}g</span> while fleeing!</div>`; 
+            }
             document.getElementById('battle-controls').classList.remove('hidden');
         }
 
@@ -950,7 +1468,9 @@
             const qualityMult = 0.5 + (quality / 10);
             
             const finalVal = Math.floor(baseItem.base * matData.mult * qualityMult * (isBoss ? 1.0 : 0.7));
-            const goldValue = Math.floor(finalVal * 5);
+            
+            const goldValue = Math.floor(finalVal * 2);
+            
             return { id: Date.now() + Math.random(), name: itemName, quality: quality, damage: finalVal, value: goldValue, type: baseItem.type, baseItem: baseItemKey };
         }
 
